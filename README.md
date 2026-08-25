@@ -67,13 +67,14 @@ Etterna\
 
 ## 1.12 daniel_menu_bridge.lua
 
-
+```
 Etterna\
 └── Themes\
     └── Rebirth\
         └── BGAnimations\
             └── ScreenSelectMusic decorations\
-                └── daniel_menu_bridge.lua```
+                └── daniel_menu_bridge.lua
+```
 
 ## 1.13 ScreenSelectMusic decorations\default.lua
 
