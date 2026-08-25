@@ -80,10 +80,10 @@ return Def.ActorFrame {
 
         writeMenuState()
 
-        -- Esta es la parte importante:
-        -- el archivo se reescribe continuamente mientras
-        -- ScreenSelectMusic esta activo, no solo cuando
-        -- cambia la cancion.
+        -- This is the important part:
+        -- the file is continuously rewritten while
+        -- ScreenSelectMusic is active, not just when
+        -- the song changes.
         self:SetUpdateFunction(
             function(actor, delta)
 
