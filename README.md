@@ -62,7 +62,7 @@ Etterna\
     └── [YOUR THEME]\
         └── BGAnimations\
             └── ScreenSelectMusic decorations\
-                └── daniel_bridge.lua```
+                └── daniel_bridge.lua
 ```
 
 ## 1.12 daniel_menu_bridge.lua
