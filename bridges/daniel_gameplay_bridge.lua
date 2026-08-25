@@ -1,7 +1,7 @@
 local OUTPUT_FILE = "Save/DanielGameplay.txt"
 
 -- 10 samples per second.
-- Python will interpolate between them to make the graph look smooth.
+-- Python will interpolate between them to make the graph look smooth.
 local UPDATE_INTERVAL = 0.10
 
 local elapsed = 0
