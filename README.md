@@ -34,6 +34,12 @@ Open cmd on `DanielEtterna-main\src` then paste:
 pyinstaller --clean --noconfirm --onefile --windowed --name DanielEtterna_new --icon=icon.ico --add-data "icon.ico;." daniel_etterna.py
 ```
 
+If you want the debug window, then paste:
+
+```cmd
+pyinstaller --clean --noconfirm --onefile --name DanielEtterna --icon=icon.ico --add-data "icon.ico;." daniel_etterna.py
+```
+
 # INSTALATION
 
 ## 1. Lua Bridges
