@@ -37,7 +37,13 @@ Other themes may be compatible, but their `ScreenSelectMusic` and `ScreenGamepla
 
 # How to build
 
-Open cmd on `DanielEtterna-main\src` then paste:
+1. Install requirements with pip:
+
+```cmd
+pip install -r requirements.txt
+```
+
+2. Open cmd on `DanielEtterna-main\src` then paste:
 
 ```cmd
 pyinstaller --clean --noconfirm --onefile --windowed --name DanielEtterna_new --icon=icon.ico --add-data "icon.ico;." daniel_etterna.py
