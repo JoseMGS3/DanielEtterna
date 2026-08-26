@@ -13,7 +13,7 @@ A real-time rice difficulty calculator for 4k Etterna. Supports .osu, .ssc and .
 - Open settings: Q
 
 
-## Linux build
+## Linux build BROKEN DO NOT USE
 
 Use `build_linux.sh` to create a Linux binary:
 
