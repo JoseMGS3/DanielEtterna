@@ -6,6 +6,14 @@ A real-time rice difficulty calculator for 4k Etterna. Supports .osu, .ssc and .
 
 **[Original Website](https://thebagelofman.github.io/Daniel/)** · **[Download](WIP)**
 
+# Keybinds 
+
+- Always on top:
+- Switch layout:
+- Open settings:
+
+
+
 ## Linux build
 
 Use `build_linux.sh` to create a Linux binary:
