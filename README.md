@@ -70,7 +70,7 @@ Etterna\
 ```
 Etterna\
 └── Themes\
-    └── Rebirth\
+    └── [YOUR THEME]\
         └── BGAnimations\
             └── ScreenSelectMusic decorations\
                 └── daniel_menu_bridge.lua
@@ -83,7 +83,7 @@ With a text editor (ej. notepad), `open default.lua` file, located on:
 ```
 Etterna\
 └── Themes\
-    └── Rebirth\
+    └── [YOUR THEME]\
         └── BGAnimations\
             └── ScreenSelectMusic decorations\
                 └── default.lua
@@ -101,7 +101,7 @@ t[#t+1] = LoadActor("daniel_menu_bridge.lua")
 ```
 Etterna\
 └── Themes\
-    └── Rebirth\
+    └── [YOUR THEME]\
         └── BGAnimations\
             └── ScreenGameplay overlay\
                 └── daniel_gameplay_bridge.lua
@@ -123,7 +123,7 @@ t[#t+1] = LoadActor("daniel_gameplay_bridge.lua")
 ```
 Etterna
 └── Themes
-    └── Rebirth
+    └── [YOUR THEME]
         └── BGAnimations
             │
             ├── ScreenSelectMusic decorations
