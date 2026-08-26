@@ -1,6 +1,6 @@
 # DanielEtterna
 
-A real-time rice difficulty calculator for 4k Etterna. Supports .osu, .ssc and .sm files.
+A real-time rice difficulty calculator for 4k Etterna. Supports .osu, .ssc and .sm files. Below Alpha Dan ratings are enabled, but can be inaccurate.
 
 **[Original Website](https://thebagelofman.github.io/Daniel/)** · **[Download](WIP)**
 
