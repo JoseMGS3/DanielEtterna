@@ -186,7 +186,7 @@ current_mode = MODE_FULL
 always_on_top = True
 _resize_job = None
 
-# Configuración editable desde la tecla 1.
+# Configuración editable desde el menú de opciones.
 current_keybinds = dict(
     APP_CONFIG.get(
         "keybinds",
@@ -1197,7 +1197,7 @@ def _make_key_capture_entry(
 
 
 def open_settings(event=None):
-    """Menú de opciones. Por defecto se abre con la tecla 1."""
+    """Abre el menú de opciones."""
     global _settings_window
 
     if _settings_window is not None:
