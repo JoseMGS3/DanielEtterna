@@ -2,7 +2,7 @@
 
 A real-time rice difficulty calculator for 4k Etterna. Supports .osu, .ssc and .sm files. (Note: .sm/.ssc charts using WARPS are not currently supported.)
 
-**Below Alpha Dan ratings are enabled, but can be inaccurate.**
+**Ratings below Alpha Dan are enabled, but can be inaccurate.**
 
 **[Original Website](https://thebagelofman.github.io/Daniel/)** · **[Original Daniel](https://github.com/TheBagelOfMan/Daniel)** · **[Download DanielEtterna](https://github.com/JoseMGS3/DanielEtterna/releases)**
 
@@ -31,7 +31,7 @@ On Linux/macOS, it will use Wine if only `src/msd.exe` is available.
 
 ## Theme compatibility
 
-DanielEtterna is currently developed and tested with the Rebirth theme.
+DanielEtterna is currently developed and tested with Rebirth theme.
 Other themes may be compatible, but their `ScreenSelectMusic` and `ScreenGameplay` implementations can differ. The three Lua bridge actors must be loaded by the equivalent screens of the selected theme, and theme-specific rate/preview functions may require adaptation.
 
 
