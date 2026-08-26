@@ -59,7 +59,7 @@ pyinstaller --clean --noconfirm --onefile --name DanielEtterna --icon=icon.ico -
 
 ## 1. Lua Bridges
 
-DanielEtterna needs three Lua scripts (briges) to receive information from Etterna; these can be found on the `/bridges folder`:
+DanielEtterna needs three Lua scripts (briges) to receive information from Etterna; these can be found on the `/bridges` folder:
 
 ```
 daniel_bridge.lua
