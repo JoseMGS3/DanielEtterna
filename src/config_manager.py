@@ -11,9 +11,9 @@ DEFAULT_CONFIG = {
     "etterna_root": "",
     "language": i18n.DEFAULT_LANGUAGE,
     "keybinds": {
-        "toggle_topmost": "Tab",
-        "cycle_mode": "F2",
-        "open_settings": "1",
+        "toggle_topmost": "F1",
+        "cycle_mode": "Tab",
+        "open_settings": "Q",
     },
 }
 
