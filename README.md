@@ -8,10 +8,9 @@ A real-time rice difficulty calculator for 4k Etterna. Supports .osu, .ssc and .
 
 # Keybinds 
 
-- Always on top:
-- Switch layout:
-- Open settings:
-
+- Always on top: F1
+- Switch layout: Tab
+- Open settings: Q
 
 
 ## Linux build
