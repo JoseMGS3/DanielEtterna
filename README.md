@@ -4,7 +4,7 @@ A real-time rice difficulty calculator for 4k Etterna. Supports .osu, .ssc and .
 
 **Below Alpha Dan ratings are enabled, but can be inaccurate.**
 
-**[Original Website](https://thebagelofman.github.io/Daniel/)** · **[Download](WIP)**
+**[Original Website](https://thebagelofman.github.io/Daniel/)** · **[Download](https://github.com/JoseMGS3/DanielEtterna/releases))**
 
 # Keybinds 
 
