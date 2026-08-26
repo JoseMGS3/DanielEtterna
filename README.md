@@ -49,7 +49,7 @@ pip install -r requirements.txt
 pyinstaller --clean --noconfirm --onefile --windowed --name DanielEtterna_new --icon=icon.ico --add-data "icon.ico;." daniel_etterna.py
 ```
 
-If you want the debug window, then paste:
+If you want the debug window instead, then paste:
 
 ```cmd
 pyinstaller --clean --noconfirm --onefile --name DanielEtterna --icon=icon.ico --add-data "icon.ico;." daniel_etterna.py
