@@ -171,7 +171,7 @@ These files must be copied into the theme you are using in Etterna.
 
 ## 1. daniel_bridge.lua
 
-It is responsible for sending the program information about the selected file:
+It is responsible for sendinginformation about the selected file to DanielEtterna:
 
 ```
 Song
@@ -189,12 +189,12 @@ Skillsets
 
 This file provides the current position of the music while you're on the selection screen.
 
-It's what allows the strain graph cursor to advance while the preview is playing.
+Allows the strain graph to advance while the preview is playing.
 
 
 ## 3. daniel_gameplay_bridge.lua
 
-It's responsible for sending the song's position during gameplay:
+Responsible for sending the song's position during gameplay:
 
 ```
 playing
