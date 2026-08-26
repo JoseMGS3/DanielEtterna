@@ -1,0 +1,6 @@
+# Runtime dependencies
+numpy
+Pillow
+
+# Build dependency
+PyInstaller
