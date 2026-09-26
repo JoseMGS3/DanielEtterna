@@ -17,6 +17,7 @@ import algorithm
 import chart_loader
 import config_manager
 import i18n
+import global_hotkeys
 
 from graph_fast import FastGraph
 
@@ -220,11 +221,19 @@ current_keybinds = dict(
         config_manager.DEFAULT_CONFIG["keybinds"]
     )
 )
+current_global_hotkeys = bool(
+    APP_CONFIG.get(
+        "global_hotkeys",
+        False
+    )
+)
 _bound_key_sequences = {}
 _settings_window = None
 
-# Las keybinds son locales a DanielEtterna:
-# solo funcionan mientras una ventana de la aplicación tiene el foco.
+# Por defecto las keybinds son locales. El hook global de Windows
+# solo se activa si el usuario marca la opción correspondiente.
+hotkey_manager = global_hotkeys.GlobalHotkeyManager()
+_global_hotkeys_active = False
 _local_key_dispatch_installed = False
 
 
@@ -1408,12 +1417,46 @@ def _settings_is_open():
 
 
 
+def _handle_hotkey_action(action):
+    """Ejecuta una acción global en el hilo principal de Tk."""
+    if _settings_is_open():
+        return
+
+    handlers = {
+        "toggle_topmost": toggle_always_on_top,
+        "cycle_mode": cycle_mode,
+        "open_settings": open_settings,
+    }
+
+    handler = handlers.get(action)
+
+    if handler is not None:
+        handler()
+
+
+def _poll_global_hotkeys():
+    if not _global_hotkeys_active:
+        return
+
+    for action in hotkey_manager.poll_actions():
+        _handle_hotkey_action(action)
+
+
 def _dispatch_keypress(event):
-    """Procesa keybinds solo cuando DanielEtterna tiene el foco."""
+    """
+    Procesa keybinds locales cuando DanielEtterna tiene el foco.
+
+    Si el hook global está activo, evitamos procesar también el evento
+    local para que una misma tecla no ejecute la acción dos veces.
+    """
     if _settings_is_open():
         return None
 
+    if _global_hotkeys_active:
+        return None
+
     spec = _key_event_to_spec(event)
+
     if spec is None:
         return None
 
@@ -1446,12 +1489,13 @@ def apply_keybinds():
     """
     Valida y aplica las keybinds sin reiniciar DanielEtterna.
 
-    Las teclas se escuchan únicamente mediante Tkinter, por lo que
-    solo se activan cuando DanielEtterna (o una de sus ventanas)
-    tiene el foco.
+    Por defecto usa bindings locales de Tkinter. En Windows, si el usuario
+    habilita la opción de detectar atajos fuera de foco, se activa además
+    el hook global y el dispatcher local se inhibe para evitar duplicados.
     """
     global _bound_key_sequences
     global _local_key_dispatch_installed
+    global _global_hotkeys_active
 
     sequences = _validated_tk_keybinds(
         current_keybinds,
@@ -1468,10 +1512,43 @@ def apply_keybinds():
         )
         _local_key_dispatch_installed = True
 
-    print(
-        "[Keybinds] Focus-only mode:",
-        current_keybinds
-    )
+    # Reiniciar el hook para aplicar inmediatamente cambios de teclas
+    # o del checkbox.
+    try:
+        hotkey_manager.stop()
+    except Exception:
+        pass
+
+    _global_hotkeys_active = False
+
+    if (
+        current_global_hotkeys
+        and os.name == "nt"
+    ):
+        hotkey_manager.set_bindings(
+            current_keybinds,
+            current_language,
+        )
+
+        _global_hotkeys_active = (
+            hotkey_manager.start()
+        )
+
+        if _global_hotkeys_active:
+            print(
+                "[Keybinds] Global detection enabled:",
+                current_keybinds
+            )
+        else:
+            print(
+                "[Keybinds] Global hook unavailable; "
+                "using focus-only mode."
+            )
+    else:
+        print(
+            "[Keybinds] Focus-only mode:",
+            current_keybinds
+        )
 
 
 _MODIFIER_KEYSYMS = {
@@ -1664,7 +1741,7 @@ def open_settings(event=None):
     _settings_window = win
 
     win.title(tr("settings_window_title"))
-    win.geometry("650x640")
+    win.geometry("650x700")
     win.resizable(False, False)
     win.configure(bg=BG_COLOR)
     win.transient(root)
@@ -1685,7 +1762,7 @@ def open_settings(event=None):
         x=10,
         y=10,
         width=630,
-        height=620,
+        height=680,
     )
 
     general_tab = tk.Frame(
@@ -1904,6 +1981,54 @@ def open_settings(event=None):
         )
 
     # --------------------------------------------------------
+    # KEYBINDS GLOBALES
+    # --------------------------------------------------------
+    global_hotkeys_var = tk.BooleanVar(
+        value=current_global_hotkeys
+    )
+
+    global_hotkeys_check = tk.Checkbutton(
+        general_tab,
+        text=tr("global_hotkeys"),
+        variable=global_hotkeys_var,
+        onvalue=True,
+        offvalue=False,
+        bg=BG_COLOR,
+        fg=fg,
+        activebackground=BG_COLOR,
+        activeforeground=fg,
+        selectcolor=entry_bg,
+        font=small_font,
+        anchor="w",
+        highlightthickness=0,
+        bd=0,
+        state=(
+            "normal"
+            if os.name == "nt"
+            else "disabled"
+        ),
+    )
+    global_hotkeys_check.place(
+        x=22,
+        y=252,
+        width=400,
+        height=26,
+    )
+
+    tk.Label(
+        general_tab,
+        text=tr("global_hotkeys_hint"),
+        bg=BG_COLOR,
+        fg=muted,
+        font=small_font,
+        anchor="w",
+    ).place(
+        x=42,
+        y=280,
+        width=550,
+    )
+
+    # --------------------------------------------------------
     # KEYBINDS
     # --------------------------------------------------------
     tk.Label(
@@ -1912,7 +2037,7 @@ def open_settings(event=None):
         bg=BG_COLOR,
         fg=fg,
         font=normal_font,
-    ).place(x=22, y=258)
+    ).place(x=22, y=318)
 
     tk.Label(
         general_tab,
@@ -1920,7 +2045,7 @@ def open_settings(event=None):
         bg=BG_COLOR,
         fg=muted,
         font=small_font,
-    ).place(x=22, y=284)
+    ).place(x=22, y=344)
 
     key_vars = {
         action: tk.StringVar(
@@ -1948,7 +2073,7 @@ def open_settings(event=None):
         ),
     ]
 
-    y = 318
+    y = 378
     key_entries = {}
 
     for label, action in rows:
@@ -2004,7 +2129,7 @@ def open_settings(event=None):
         font=small_font,
     ).place(
         x=405,
-        y=318,
+        y=378,
         width=180,
         height=29,
     )
@@ -2018,7 +2143,7 @@ def open_settings(event=None):
     )
     credits_separator.place(
         x=22,
-        y=440,
+        y=500,
         width=585,
         height=1,
     )
@@ -2034,7 +2159,7 @@ def open_settings(event=None):
         ),
     ).place(
         x=22,
-        y=450,
+        y=510,
         width=585,
     )
 
@@ -2049,7 +2174,7 @@ def open_settings(event=None):
         ),
     ).place(
         x=22,
-        y=468,
+        y=528,
         width=585,
     )
 
@@ -2064,7 +2189,7 @@ def open_settings(event=None):
         ),
     ).place(
         x=22,
-        y=486,
+        y=546,
         width=585,
     )
 
@@ -2087,7 +2212,7 @@ def open_settings(event=None):
         anchor="w",
     ).place(
         x=22,
-        y=515,
+        y=575,
         width=585,
     )
 
@@ -2099,6 +2224,7 @@ def open_settings(event=None):
     def _save_settings():
         global APP_CONFIG
         global current_keybinds
+        global current_global_hotkeys
         global current_language
         global _settings_window
 
@@ -2159,10 +2285,15 @@ def open_settings(event=None):
             Path(path_value).resolve()
         )
 
+        proposed_global_hotkeys = bool(
+            global_hotkeys_var.get()
+        )
+
         new_config = {
             "etterna_root": clean_path,
             "language": proposed_language,
             "layout": MODE_NAMES[current_mode],
+            "global_hotkeys": proposed_global_hotkeys,
             "keybinds": dict(proposed),
         }
 
@@ -2187,6 +2318,9 @@ def open_settings(event=None):
         )
         current_keybinds = dict(
             proposed
+        )
+        current_global_hotkeys = (
+            proposed_global_hotkeys
         )
 
         _set_etterna_root(
@@ -2223,7 +2357,7 @@ def open_settings(event=None):
         font=small_font,
     ).place(
         x=410,
-        y=548,
+        y=608,
         width=90,
         height=28,
     )
@@ -2240,7 +2374,7 @@ def open_settings(event=None):
         font=small_font,
     ).place(
         x=510,
-        y=548,
+        y=608,
         width=96,
         height=28,
     )
@@ -2266,6 +2400,9 @@ def _tick():
     global loading_step
     global _last_loading_dot
 
+    # Las acciones del hook global se encolan desde el hilo de Windows
+    # y se ejecutan aquí, de forma segura, en el hilo principal de Tk.
+    _poll_global_hotkeys()
 
     now = time.monotonic()
 
@@ -4069,6 +4206,11 @@ def get_dan_from_diff(diff):
 
 
 def _on_app_close():
+    try:
+        hotkey_manager.stop()
+    except Exception:
+        pass
+
     root.destroy()
 
 
