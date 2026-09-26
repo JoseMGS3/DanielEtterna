@@ -1741,8 +1741,9 @@ def open_settings(event=None):
     _settings_window = win
 
     win.title(tr("settings_window_title"))
-    win.geometry("650x700")
-    win.resizable(False, False)
+    win.geometry("680x720")
+    win.minsize(650, 720)
+    win.resizable(True, True)
     win.configure(bg=BG_COLOR)
     win.transient(root)
     win.lift()
@@ -1757,30 +1758,152 @@ def open_settings(event=None):
     except Exception:
         pass
 
-    notebook = ttk.Notebook(win)
-    notebook.place(
-        x=10,
-        y=10,
-        width=630,
-        height=680,
+    # --------------------------------------------------------
+    # PESTAÑAS
+    # --------------------------------------------------------
+    # Usamos tabs propios con widgets Tk en lugar de ttk.Notebook.
+    # Esto elimina el borde claro que algunos temas de Windows
+    # dibujan alrededor de las pestañas y permite controlar mejor
+    # su tamaño y apariencia.
+    tabs_bar = tk.Frame(
+        win,
+        bg=BG_COLOR,
+        bd=0,
+        highlightthickness=0,
+    )
+    tabs_bar.pack(
+        fill="x",
+        padx=12,
+        pady=(12, 0),
+    )
+
+    content_host = tk.Frame(
+        win,
+        bg=BG_COLOR,
+        bd=0,
+        highlightthickness=0,
+    )
+    content_host.pack(
+        fill="both",
+        expand=True,
+        padx=12,
+        pady=(0, 12),
     )
 
     general_tab = tk.Frame(
-        notebook,
+        content_host,
         bg=BG_COLOR,
+        bd=0,
+        highlightthickness=0,
     )
     style_tab = tk.Frame(
-        notebook,
+        content_host,
         bg=BG_COLOR,
+        bd=0,
+        highlightthickness=0,
     )
 
-    notebook.add(
+    for tab in (
         general_tab,
-        text=tr("general_tab"),
-    )
-    notebook.add(
         style_tab,
+    ):
+        tab.place(
+            x=0,
+            y=0,
+            relwidth=1,
+            relheight=1,
+        )
+
+    tab_buttons = {}
+
+    def _show_settings_tab(name):
+        selected = (
+            general_tab
+            if name == "general"
+            else style_tab
+        )
+        selected.tkraise()
+
+        for tab_name, button in (
+            tab_buttons.items()
+        ):
+            active = (
+                tab_name == name
+            )
+
+            button.configure(
+                bg=(
+                    "#2B2B2B"
+                    if active
+                    else "#151515"
+                ),
+                fg=(
+                    "#FFFFFF"
+                    if active
+                    else "#AAAAAA"
+                ),
+                activebackground=(
+                    "#333333"
+                    if active
+                    else "#222222"
+                ),
+                activeforeground="#FFFFFF",
+            )
+
+    tab_button_font = (
+        "Segoe UI Semibold",
+        _font_size(12)
+    )
+
+    tab_buttons["general"] = tk.Button(
+        tabs_bar,
+        text=tr("general_tab"),
+        command=lambda: _show_settings_tab(
+            "general"
+        ),
+        bg="#2B2B2B",
+        fg="#FFFFFF",
+        activebackground="#333333",
+        activeforeground="#FFFFFF",
+        relief="flat",
+        bd=0,
+        highlightthickness=0,
+        takefocus=False,
+        cursor="hand2",
+        font=tab_button_font,
+        padx=28,
+        pady=10,
+    )
+    tab_buttons["general"].pack(
+        side="left",
+        padx=(0, 8),
+    )
+
+    tab_buttons["style"] = tk.Button(
+        tabs_bar,
         text=tr("style_tab"),
+        command=lambda: _show_settings_tab(
+            "style"
+        ),
+        bg="#151515",
+        fg="#AAAAAA",
+        activebackground="#222222",
+        activeforeground="#FFFFFF",
+        relief="flat",
+        bd=0,
+        highlightthickness=0,
+        takefocus=False,
+        cursor="hand2",
+        font=tab_button_font,
+        padx=28,
+        pady=10,
+    )
+    tab_buttons["style"].pack(
+        side="left",
+    )
+
+    _show_settings_tab(
+        "general"
     )
 
     title_font = (
