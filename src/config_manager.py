@@ -7,11 +7,15 @@ import i18n
 
 
 DEFAULT_CONFIG = {
-    "config_version": 5,
+    "config_version": 6,
     "etterna_root": "",
     "language": i18n.DEFAULT_LANGUAGE,
     "layout": "full",
     "global_hotkeys": False,
+    "settings_window_size": {
+        "width": 680,
+        "height": 720,
+    },
     "keybinds": {
         "toggle_topmost": "F1",
         "cycle_mode": "Tab",
@@ -65,6 +69,41 @@ def _merge_defaults(data):
     global_hotkeys = data.get("global_hotkeys")
     if isinstance(global_hotkeys, bool):
         result["global_hotkeys"] = global_hotkeys
+
+    settings_window_size = data.get(
+        "settings_window_size"
+    )
+    if isinstance(
+        settings_window_size,
+        dict
+    ):
+        try:
+            width = int(
+                settings_window_size.get(
+                    "width",
+                    680
+                )
+            )
+            height = int(
+                settings_window_size.get(
+                    "height",
+                    720
+                )
+            )
+        except (TypeError, ValueError):
+            width = 680
+            height = 720
+
+        result["settings_window_size"] = {
+            "width": max(
+                540,
+                min(width, 3840)
+            ),
+            "height": max(
+                620,
+                min(height, 2160)
+            ),
+        }
 
     keybinds = data.get("keybinds")
     if isinstance(keybinds, dict):
