@@ -2542,7 +2542,7 @@ def open_settings(event=None):
 
     credit_two = tk.Label(
         general_tab,
-        text="Port by ChatGPT (and JoseMGS).",
+        text="Vibecoded (sorry) port by JoseMGS.",
         bg=BG_COLOR,
         fg="#888888",
         font=small_font,
