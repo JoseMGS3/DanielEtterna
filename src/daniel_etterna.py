@@ -17,7 +17,6 @@ import algorithm
 import chart_loader
 import config_manager
 import i18n
-import global_hotkeys
 
 from graph_fast import FastGraph
 
@@ -30,6 +29,7 @@ def resource_path(relative_path):
 
 # --- Constants ---
 
+APP_VERSION = "1.1"
 TOSU_WS = "ws://localhost:24050/ws"
 
 # ============================================================
@@ -223,9 +223,8 @@ current_keybinds = dict(
 _bound_key_sequences = {}
 _settings_window = None
 
-# Global keyboard hook. On Windows this keeps shortcuts working
-# even while Etterna has focus.
-hotkey_manager = global_hotkeys.GlobalHotkeyManager()
+# Las keybinds son locales a DanielEtterna:
+# solo funcionan mientras una ventana de la aplicación tiene el foco.
 _local_key_dispatch_installed = False
 
 
@@ -353,7 +352,7 @@ if os.name == "nt" and hasattr(ctypes, "windll"):
 
 root = tk.Tk()
 root.tk.call("tk", "scaling", 1.0)
-root.title("DanielEtterna")
+root.title(f"DanielEtterna {APP_VERSION}")
 root.geometry(
     f"{MODE_WIDTHS[current_mode]}x{MODE_HEIGHTS[current_mode]}"
 )
@@ -408,6 +407,9 @@ canvas = tk.Canvas(root, width=WINDOW_WIDTH, height=FULL_HEIGHT, bg=BG_COLOR, hi
 canvas.pack(expand=True, fill="both")
 
 graph = FastGraph(canvas, GRAPH_HEIGHT, WINDOW_WIDTH)
+
+if current_mode != MODE_FULL:
+    graph.hide()
 
 text_items = []
 msd_items = []
@@ -1404,36 +1406,10 @@ def _settings_is_open():
         return False
 
 
-def _handle_hotkey_action(action):
-    """Run one configured shortcut on Tk's main thread."""
-
-    # While Options is open, shortcuts are ignored by the overlay. The
-    # low-level hook does not consume the key, so the capture field still
-    # receives Tab/1/Ctrl+M normally.
-    if _settings_is_open():
-        return
-
-    handlers = {
-        "toggle_topmost": toggle_always_on_top,
-        "cycle_mode": cycle_mode,
-        "open_settings": open_settings,
-    }
-
-    handler = handlers.get(action)
-    if handler is not None:
-        handler()
-
-
-def _poll_global_hotkeys():
-    if os.name != "nt":
-        return
-
-    for action in hotkey_manager.poll_actions():
-        _handle_hotkey_action(action)
 
 
 def _dispatch_keypress(event):
-    """Tk-only fallback used on non-Windows systems."""
+    """Procesa keybinds solo cuando DanielEtterna tiene el foco."""
     if _settings_is_open():
         return None
 
@@ -1467,7 +1443,13 @@ def _dispatch_keypress(event):
 
 
 def apply_keybinds():
-    """Validate and apply keybinds without restarting Daniel."""
+    """
+    Valida y aplica las keybinds sin reiniciar DanielEtterna.
+
+    Las teclas se escuchan únicamente mediante Tkinter, por lo que
+    solo se activan cuando DanielEtterna (o una de sus ventanas)
+    tiene el foco.
+    """
     global _bound_key_sequences
     global _local_key_dispatch_installed
 
@@ -1478,23 +1460,7 @@ def apply_keybinds():
 
     _bound_key_sequences = dict(sequences)
 
-    if os.name == "nt":
-        # A Windows low-level hook keeps the shortcuts working even while
-        # Etterna owns the keyboard focus. The hook never consumes keys.
-        hotkey_manager.set_bindings(
-            current_keybinds,
-            current_language,
-        )
-
-        started = hotkey_manager.start()
-        if started:
-            print("[Keybinds] Global keyboard hook active")
-        else:
-            print(
-                "[Keybinds] Warning: global keyboard hook could not start."
-            )
-
-    elif not _local_key_dispatch_installed:
+    if not _local_key_dispatch_installed:
         root.bind_all(
             "<KeyPress>",
             _dispatch_keypress,
@@ -1502,7 +1468,10 @@ def apply_keybinds():
         )
         _local_key_dispatch_installed = True
 
-    print("[Keybinds]", current_keybinds)
+    print(
+        "[Keybinds] Focus-only mode:",
+        current_keybinds
+    )
 
 
 _MODIFIER_KEYSYMS = {
@@ -2297,10 +2266,6 @@ def _tick():
     global loading_step
     global _last_loading_dot
 
-
-    # Global hotkey callbacks are queued by the Windows hook thread and
-    # executed here, safely on Tk's main thread.
-    _poll_global_hotkeys()
 
     now = time.monotonic()
 
@@ -4104,10 +4069,6 @@ def get_dan_from_diff(diff):
 
 
 def _on_app_close():
-    try:
-        hotkey_manager.stop()
-    except Exception:
-        pass
     root.destroy()
 
 
