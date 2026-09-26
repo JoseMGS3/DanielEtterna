@@ -1741,6 +1741,34 @@ def open_settings(event=None):
     SETTINGS_BASE_WIDTH = 680
     SETTINGS_BASE_HEIGHT = 720
 
+    saved_settings_size = APP_CONFIG.get(
+        "settings_window_size",
+        {}
+    )
+
+    try:
+        initial_settings_width = max(
+            540,
+            int(
+                saved_settings_size.get(
+                    "width",
+                    SETTINGS_BASE_WIDTH
+                )
+            )
+        )
+        initial_settings_height = max(
+            620,
+            int(
+                saved_settings_size.get(
+                    "height",
+                    SETTINGS_BASE_HEIGHT
+                )
+            )
+        )
+    except (TypeError, ValueError):
+        initial_settings_width = SETTINGS_BASE_WIDTH
+        initial_settings_height = SETTINGS_BASE_HEIGHT
+
     win = tk.Toplevel(root)
     _settings_window = win
 
@@ -1748,8 +1776,8 @@ def open_settings(event=None):
         tr("settings_window_title")
     )
     win.geometry(
-        f"{SETTINGS_BASE_WIDTH}x"
-        f"{SETTINGS_BASE_HEIGHT}"
+        f"{initial_settings_width}x"
+        f"{initial_settings_height}"
     )
     win.minsize(
         540,
@@ -2574,8 +2602,57 @@ def open_settings(event=None):
     # --------------------------------------------------------
     # GUARDAR / CANCELAR
     # --------------------------------------------------------
+    def _current_settings_window_size():
+        # update_idletasks asegura que winfo_width/height reflejen
+        # el tamaño final después de arrastrar la ventana.
+        try:
+            win.update_idletasks()
+        except tk.TclError:
+            pass
+
+        try:
+            width = int(
+                win.winfo_width()
+            )
+            height = int(
+                win.winfo_height()
+            )
+        except tk.TclError:
+            width = SETTINGS_BASE_WIDTH
+            height = SETTINGS_BASE_HEIGHT
+
+        return {
+            "width": max(
+                540,
+                min(width, 3840)
+            ),
+            "height": max(
+                620,
+                min(height, 2160)
+            ),
+        }
+
+    def _persist_settings_window_size():
+        APP_CONFIG[
+            "settings_window_size"
+        ] = _current_settings_window_size()
+
+        try:
+            config_manager.save_config(
+                APP_CONFIG
+            )
+        except OSError as exc:
+            print(
+                "[Settings] Could not save window size:",
+                exc
+            )
+
     def _on_close():
         global _settings_window
+
+        # Cancelar o cerrar con X no guarda los cambios de opciones,
+        # pero sí recuerda el tamaño de la ventana.
+        _persist_settings_window_size()
 
         _settings_window = None
         win.destroy()
@@ -2653,6 +2730,9 @@ def open_settings(event=None):
             "language": proposed_language,
             "layout": MODE_NAMES[current_mode],
             "global_hotkeys": proposed_global_hotkeys,
+            "settings_window_size": (
+                _current_settings_window_size()
+            ),
             "keybinds": dict(proposed),
         }
 
@@ -2682,10 +2762,23 @@ def open_settings(event=None):
             proposed_global_hotkeys
         )
 
-        _set_etterna_root(
-            clean_path
+        current_root_path = (
+            str(
+                ETTERNA_ROOT.resolve()
+            )
+            if ETTERNA_ROOT is not None
+            else ""
         )
-        _clear_bridge_files()
+
+        if clean_path != current_root_path:
+            _set_etterna_root(
+                clean_path
+            )
+
+        # Guardar Opciones no debe tocar DanielBridge.txt,
+        # DanielMenu.txt ni DanielGameplay.txt. Esos archivos solo
+        # se limpian al iniciar DanielEtterna para descartar una
+        # sesión anterior.
         apply_keybinds()
 
         if connection_phase != "ready":
