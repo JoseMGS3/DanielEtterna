@@ -8,6 +8,7 @@
 - Responsive text automatically shrinks when the window is too narrow.
 - The strain graph keeps updating even when the current layout hides it.
 - Options now includes a separate Style tab reserved for future customization.
+- The Options window is resizable and uses larger borderless tabs.
 - Keybinds are focus-only by default; on Windows, Options → General can enable detection while another app has focus.
 
 
