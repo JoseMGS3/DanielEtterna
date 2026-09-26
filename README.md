@@ -8,7 +8,7 @@
 - Responsive text automatically shrinks when the window is too narrow.
 - The strain graph keeps updating even when the current layout hides it.
 - Options now includes a separate Style tab reserved for future customization.
-- Keybinds only activate while DanielEtterna has focus.
+- Keybinds are focus-only by default; on Windows, Options → General can enable detection while another app has focus.
 
 
 A real-time rice difficulty calculator for 4k Etterna. Supports .osu, .ssc and .sm files. (Note: .sm/.ssc charts using WARPS are not currently supported.)
@@ -23,7 +23,7 @@ A real-time rice difficulty calculator for 4k Etterna. Supports .osu, .ssc and .
 - Switch layout: Tab
 - Open settings: Q
 
-Keybinds are focus-only: they activate only while DanielEtterna (or its Options window) has keyboard focus.
+Keybinds are focus-only by default. On Windows, enable **Detect keybinds outside DanielEtterna** in **Options → General** if you want the shortcuts to work while Etterna or another app has focus.
 
 
 ## Linux build BROKEN DO NOT USE
