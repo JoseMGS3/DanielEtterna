@@ -1737,14 +1737,31 @@ def open_settings(event=None):
         **kwargs
     )
 
+    # Tamaño base usado para calcular la escala responsive.
+    SETTINGS_BASE_WIDTH = 680
+    SETTINGS_BASE_HEIGHT = 720
+
     win = tk.Toplevel(root)
     _settings_window = win
 
-    win.title(tr("settings_window_title"))
-    win.geometry("680x720")
-    win.minsize(650, 720)
-    win.resizable(True, True)
-    win.configure(bg=BG_COLOR)
+    win.title(
+        tr("settings_window_title")
+    )
+    win.geometry(
+        f"{SETTINGS_BASE_WIDTH}x"
+        f"{SETTINGS_BASE_HEIGHT}"
+    )
+    win.minsize(
+        540,
+        620
+    )
+    win.resizable(
+        True,
+        True
+    )
+    win.configure(
+        bg=BG_COLOR
+    )
     win.transient(root)
     win.lift()
 
@@ -1758,13 +1775,53 @@ def open_settings(event=None):
     except Exception:
         pass
 
+    entry_bg = "#171717"
+    button_bg = "#252525"
+    fg = "#FFFFFF"
+    muted = "#AAAAAA"
+
+    # --------------------------------------------------------
+    # FUENTES RESPONSIVE
+    # --------------------------------------------------------
+    # Usamos objetos Font para que todos los widgets que los
+    # comparten cambien de tamaño al redimensionar la ventana.
+    title_font = tkfont.Font(
+        root=win,
+        family="Segoe UI Semibold",
+        size=_font_size(20),
+    )
+    normal_font = tkfont.Font(
+        root=win,
+        family="Segoe UI",
+        size=_font_size(12),
+    )
+    small_font = tkfont.Font(
+        root=win,
+        family="Segoe UI",
+        size=_font_size(10),
+    )
+    tiny_font = tkfont.Font(
+        root=win,
+        family="Segoe UI",
+        size=_font_size(8),
+    )
+    tab_button_font = tkfont.Font(
+        root=win,
+        family="Segoe UI Semibold",
+        size=_font_size(12),
+    )
+
+    base_font_sizes = {
+        "title": _font_size(20),
+        "normal": _font_size(12),
+        "small": _font_size(10),
+        "tiny": _font_size(8),
+        "tab": _font_size(12),
+    }
+
     # --------------------------------------------------------
     # PESTAÑAS
     # --------------------------------------------------------
-    # Usamos tabs propios con widgets Tk en lugar de ttk.Notebook.
-    # Esto elimina el borde claro que algunos temas de Windows
-    # dibujan alrededor de las pestañas y permite controlar mejor
-    # su tamaño y apariencia.
     tabs_bar = tk.Frame(
         win,
         bg=BG_COLOR,
@@ -1773,8 +1830,8 @@ def open_settings(event=None):
     )
     tabs_bar.pack(
         fill="x",
-        padx=12,
-        pady=(12, 0),
+        padx=14,
+        pady=(14, 0),
     )
 
     content_host = tk.Frame(
@@ -1786,8 +1843,8 @@ def open_settings(event=None):
     content_host.pack(
         fill="both",
         expand=True,
-        padx=12,
-        pady=(0, 12),
+        padx=14,
+        pady=(8, 14),
     )
 
     general_tab = tk.Frame(
@@ -1822,6 +1879,7 @@ def open_settings(event=None):
             if name == "general"
             else style_tab
         )
+
         selected.tkraise()
 
         for tab_name, button in (
@@ -1850,16 +1908,13 @@ def open_settings(event=None):
                 activeforeground="#FFFFFF",
             )
 
-    tab_button_font = (
-        "Segoe UI Semibold",
-        _font_size(12)
-    )
-
     tab_buttons["general"] = tk.Button(
         tabs_bar,
         text=tr("general_tab"),
-        command=lambda: _show_settings_tab(
-            "general"
+        command=lambda: (
+            _show_settings_tab(
+                "general"
+            )
         ),
         bg="#2B2B2B",
         fg="#FFFFFF",
@@ -1871,19 +1926,21 @@ def open_settings(event=None):
         takefocus=False,
         cursor="hand2",
         font=tab_button_font,
-        padx=28,
-        pady=10,
+        padx=32,
+        pady=11,
     )
     tab_buttons["general"].pack(
         side="left",
-        padx=(0, 8),
+        padx=(0, 10),
     )
 
     tab_buttons["style"] = tk.Button(
         tabs_bar,
         text=tr("style_tab"),
-        command=lambda: _show_settings_tab(
-            "style"
+        command=lambda: (
+            _show_settings_tab(
+                "style"
+            )
         ),
         bg="#151515",
         fg="#AAAAAA",
@@ -1895,53 +1952,75 @@ def open_settings(event=None):
         takefocus=False,
         cursor="hand2",
         font=tab_button_font,
-        padx=28,
-        pady=10,
+        padx=32,
+        pady=11,
     )
     tab_buttons["style"].pack(
         side="left",
     )
 
-    _show_settings_tab(
-        "general"
+    # --------------------------------------------------------
+    # LAYOUT RESPONSIVE - GENERAL
+    # --------------------------------------------------------
+    # Grid permite que los controles cambien de posición y ancho
+    # junto con la ventana, en vez de quedarse en coordenadas fijas.
+    general_tab.grid_columnconfigure(
+        0,
+        weight=0,
+        minsize=145,
+    )
+    general_tab.grid_columnconfigure(
+        1,
+        weight=1,
+    )
+    general_tab.grid_columnconfigure(
+        2,
+        weight=0,
+        minsize=120,
     )
 
-    title_font = (
-        "Segoe UI Semibold",
-        _font_size(20)
-    )
-    normal_font = (
-        "Segoe UI",
-        _font_size(12)
-    )
-    small_font = (
-        "Segoe UI",
-        _font_size(10)
+    # El espacio central crece verticalmente para mantener los
+    # créditos y botones anclados hacia la parte inferior.
+    general_tab.grid_rowconfigure(
+        14,
+        weight=1,
     )
 
-    entry_bg = "#171717"
-    button_bg = "#252525"
-    fg = "#FFFFFF"
-    muted = "#AAAAAA"
-
-    tk.Label(
+    settings_heading = tk.Label(
         general_tab,
         text=tr("settings_heading"),
         bg=BG_COLOR,
         fg=fg,
         font=title_font,
-    ).place(x=22, y=15)
+        anchor="w",
+    )
+    settings_heading.grid(
+        row=0,
+        column=0,
+        columnspan=3,
+        sticky="ew",
+        padx=10,
+        pady=(4, 12),
+    )
 
     # --------------------------------------------------------
     # IDIOMA
     # --------------------------------------------------------
-    tk.Label(
+    language_label = tk.Label(
         general_tab,
         text=tr("language"),
         bg=BG_COLOR,
         fg=fg,
         font=normal_font,
-    ).place(x=22, y=55)
+        anchor="w",
+    )
+    language_label.grid(
+        row=1,
+        column=0,
+        sticky="w",
+        padx=(10, 12),
+        pady=5,
+    )
 
     language_var = tk.StringVar(
         value=i18n.language_name(
@@ -1958,31 +2037,51 @@ def open_settings(event=None):
         state="readonly",
         font=small_font,
     )
-    language_combo.place(
-        x=205,
-        y=53,
-        width=180,
-        height=28,
+    language_combo.grid(
+        row=1,
+        column=1,
+        sticky="ew",
+        padx=(0, 10),
+        pady=5,
     )
 
-    tk.Label(
+    language_hint = tk.Label(
         general_tab,
         text=tr("language_hint"),
         bg=BG_COLOR,
         fg=muted,
         font=small_font,
-    ).place(x=22, y=87)
+        anchor="w",
+        justify="left",
+    )
+    language_hint.grid(
+        row=2,
+        column=0,
+        columnspan=3,
+        sticky="ew",
+        padx=10,
+        pady=(0, 10),
+    )
 
     # --------------------------------------------------------
     # RUTA ETTERNA
     # --------------------------------------------------------
-    tk.Label(
+    path_label = tk.Label(
         general_tab,
         text=tr("etterna_path"),
         bg=BG_COLOR,
         fg=fg,
         font=normal_font,
-    ).place(x=22, y=116)
+        anchor="w",
+    )
+    path_label.grid(
+        row=3,
+        column=0,
+        columnspan=3,
+        sticky="ew",
+        padx=10,
+        pady=(4, 3),
+    )
 
     current_path = (
         str(ETTERNA_ROOT)
@@ -2002,11 +2101,14 @@ def open_settings(event=None):
         relief="flat",
         font=small_font,
     )
-    path_entry.place(
-        x=22,
-        y=144,
-        width=470,
-        height=30,
+    path_entry.grid(
+        row=4,
+        column=0,
+        columnspan=2,
+        sticky="ew",
+        padx=(10, 8),
+        pady=4,
+        ipady=4,
     )
 
     def _browse_etterna():
@@ -2018,18 +2120,24 @@ def open_settings(event=None):
             not initial
             or not Path(initial).exists()
         ):
-            initial = str(Path.home())
+            initial = str(
+                Path.home()
+            )
 
-        selected = filedialog.askdirectory(
-            parent=win,
-            title=tr("browse_title"),
-            initialdir=initial,
+        selected = (
+            filedialog.askdirectory(
+                parent=win,
+                title=tr("browse_title"),
+                initialdir=initial,
+            )
         )
 
         if selected:
-            path_var.set(selected)
+            path_var.set(
+                selected
+            )
 
-    tk.Button(
+    browse_button = tk.Button(
         general_tab,
         text=tr("browse"),
         command=_browse_etterna,
@@ -2038,54 +2146,100 @@ def open_settings(event=None):
         activebackground="#333333",
         activeforeground=fg,
         relief="flat",
+        bd=0,
         font=small_font,
-    ).place(
-        x=502,
-        y=144,
-        width=105,
-        height=30,
+    )
+    browse_button.grid(
+        row=4,
+        column=2,
+        sticky="ew",
+        padx=(0, 10),
+        pady=4,
+        ipady=3,
     )
 
-    tk.Label(
+    path_hint = tk.Label(
         general_tab,
         text=tr("path_hint"),
         bg=BG_COLOR,
         fg=muted,
         font=small_font,
-    ).place(x=22, y=180)
+        anchor="w",
+        justify="left",
+    )
+    path_hint.grid(
+        row=5,
+        column=0,
+        columnspan=3,
+        sticky="ew",
+        padx=10,
+        pady=(0, 11),
+    )
 
     # --------------------------------------------------------
     # TAMAÑO DE VENTANA
     # --------------------------------------------------------
-    tk.Label(
+    window_size_label = tk.Label(
         general_tab,
         text=tr("window_size"),
         bg=BG_COLOR,
         fg=fg,
         font=normal_font,
-    ).place(x=22, y=215)
+        anchor="w",
+    )
+    window_size_label.grid(
+        row=6,
+        column=0,
+        sticky="w",
+        padx=(10, 12),
+        pady=6,
+    )
 
-    size_buttons = [
-        (
-            tr("size_small"),
-            "small",
-            205,
-        ),
-        (
-            tr("size_medium"),
-            "medium",
-            315,
-        ),
-        (
-            tr("size_large"),
-            "large",
-            425,
-        ),
-    ]
+    size_button_frame = tk.Frame(
+        general_tab,
+        bg=BG_COLOR,
+        bd=0,
+        highlightthickness=0,
+    )
+    size_button_frame.grid(
+        row=6,
+        column=1,
+        columnspan=2,
+        sticky="ew",
+        padx=(0, 10),
+        pady=6,
+    )
 
-    for label, preset, x in size_buttons:
-        tk.Button(
-            general_tab,
+    for index in range(3):
+        size_button_frame.grid_columnconfigure(
+            index,
+            weight=1,
+            uniform="window_sizes",
+        )
+
+    size_buttons = []
+
+    for index, (
+        label,
+        preset,
+    ) in enumerate(
+        (
+            (
+                tr("size_small"),
+                "small",
+            ),
+            (
+                tr("size_medium"),
+                "medium",
+            ),
+            (
+                tr("size_large"),
+                "large",
+            ),
+        )
+    ):
+        button = tk.Button(
+            size_button_frame,
             text=label,
             command=lambda p=preset: (
                 _apply_window_preset(p)
@@ -2095,19 +2249,35 @@ def open_settings(event=None):
             activebackground="#333333",
             activeforeground=fg,
             relief="flat",
+            bd=0,
             font=small_font,
-        ).place(
-            x=x,
-            y=210,
-            width=100,
-            height=29,
+        )
+        button.grid(
+            row=0,
+            column=index,
+            sticky="ew",
+            padx=(
+                (0, 4)
+                if index == 0
+                else (
+                    (4, 4)
+                    if index == 1
+                    else (4, 0)
+                )
+            ),
+            ipady=3,
+        )
+        size_buttons.append(
+            button
         )
 
     # --------------------------------------------------------
     # KEYBINDS GLOBALES
     # --------------------------------------------------------
-    global_hotkeys_var = tk.BooleanVar(
-        value=current_global_hotkeys
+    global_hotkeys_var = (
+        tk.BooleanVar(
+            value=current_global_hotkeys
+        )
     )
 
     global_hotkeys_check = tk.Checkbutton(
@@ -2123,6 +2293,7 @@ def open_settings(event=None):
         selectcolor=entry_bg,
         font=small_font,
         anchor="w",
+        justify="left",
         highlightthickness=0,
         bd=0,
         state=(
@@ -2131,44 +2302,70 @@ def open_settings(event=None):
             else "disabled"
         ),
     )
-    global_hotkeys_check.place(
-        x=22,
-        y=252,
-        width=400,
-        height=26,
+    global_hotkeys_check.grid(
+        row=7,
+        column=0,
+        columnspan=3,
+        sticky="ew",
+        padx=10,
+        pady=(8, 2),
     )
 
-    tk.Label(
+    global_hotkeys_hint = tk.Label(
         general_tab,
         text=tr("global_hotkeys_hint"),
         bg=BG_COLOR,
         fg=muted,
         font=small_font,
         anchor="w",
-    ).place(
-        x=42,
-        y=280,
-        width=550,
+        justify="left",
+    )
+    global_hotkeys_hint.grid(
+        row=8,
+        column=0,
+        columnspan=3,
+        sticky="ew",
+        padx=(28, 10),
+        pady=(0, 10),
     )
 
     # --------------------------------------------------------
     # KEYBINDS
     # --------------------------------------------------------
-    tk.Label(
+    keybinds_label = tk.Label(
         general_tab,
         text=tr("keybinds"),
         bg=BG_COLOR,
         fg=fg,
         font=normal_font,
-    ).place(x=22, y=318)
+        anchor="w",
+    )
+    keybinds_label.grid(
+        row=9,
+        column=0,
+        columnspan=3,
+        sticky="ew",
+        padx=10,
+        pady=(4, 2),
+    )
 
-    tk.Label(
+    keybind_hint = tk.Label(
         general_tab,
         text=tr("keybind_hint"),
         bg=BG_COLOR,
         fg=muted,
         font=small_font,
-    ).place(x=22, y=344)
+        anchor="w",
+        justify="left",
+    )
+    keybind_hint.grid(
+        row=10,
+        column=0,
+        columnspan=3,
+        sticky="ew",
+        padx=10,
+        pady=(0, 7),
+    )
 
     key_vars = {
         action: tk.StringVar(
@@ -2196,38 +2393,56 @@ def open_settings(event=None):
         ),
     ]
 
-    y = 378
     key_entries = {}
+    key_labels = []
 
-    for label, action in rows:
-        tk.Label(
+    for index, (
+        label,
+        action,
+    ) in enumerate(rows):
+        row = 11 + index
+
+        key_label = tk.Label(
             general_tab,
             text=label,
             bg=BG_COLOR,
             fg=fg,
             font=small_font,
             anchor="w",
-        ).place(
-            x=22,
-            y=y + 5,
-            width=175,
+        )
+        key_label.grid(
+            row=row,
+            column=0,
+            sticky="ew",
+            padx=(10, 12),
+            pady=4,
+        )
+        key_labels.append(
+            key_label
         )
 
         key_entries[action] = (
             _make_key_capture_entry(
                 parent=general_tab,
                 variable=key_vars[action],
-                x=205,
-                y=y,
-                width=180,
-                height=29,
+                x=0,
+                y=0,
+                width=10,
+                height=10,
                 bg=entry_bg,
                 fg=fg,
                 font=small_font,
             )
         )
-
-        y += 38
+        key_entries[action].place_forget()
+        key_entries[action].grid(
+            row=row,
+            column=1,
+            sticky="ew",
+            padx=(0, 8),
+            pady=4,
+            ipady=3,
+        )
 
     def _restore_defaults():
         defaults = (
@@ -2238,9 +2453,11 @@ def open_settings(event=None):
         for action, value in (
             defaults.items()
         ):
-            key_vars[action].set(value)
+            key_vars[action].set(
+                value
+            )
 
-    tk.Button(
+    restore_button = tk.Button(
         general_tab,
         text=tr("restore_keybinds"),
         command=_restore_defaults,
@@ -2249,78 +2466,91 @@ def open_settings(event=None):
         activebackground="#333333",
         activeforeground=fg,
         relief="flat",
+        bd=0,
         font=small_font,
-    ).place(
-        x=405,
-        y=378,
-        width=180,
-        height=29,
+    )
+    restore_button.grid(
+        row=11,
+        column=2,
+        sticky="ew",
+        padx=(0, 10),
+        pady=4,
+        ipady=3,
     )
 
     # --------------------------------------------------------
-    # CREDITS
+    # CREDITS / FOOTER
     # --------------------------------------------------------
     credits_separator = tk.Frame(
         general_tab,
         bg="#404040",
-    )
-    credits_separator.place(
-        x=22,
-        y=500,
-        width=585,
         height=1,
     )
+    credits_separator.grid(
+        row=15,
+        column=0,
+        columnspan=3,
+        sticky="ew",
+        padx=10,
+        pady=(10, 7),
+    )
 
-    tk.Label(
+    credit_one = tk.Label(
         general_tab,
         text="Daniel by TheBagelOfMan.",
         bg=BG_COLOR,
         fg="#888888",
-        font=(
-            "Segoe UI",
-            _font_size(10)
-        ),
-    ).place(
-        x=22,
-        y=510,
-        width=585,
+        font=small_font,
+        anchor="center",
+    )
+    credit_one.grid(
+        row=16,
+        column=0,
+        columnspan=3,
+        sticky="ew",
+        padx=10,
+        pady=1,
     )
 
-    tk.Label(
+    credit_two = tk.Label(
         general_tab,
         text="Port by ChatGPT (and JoseMGS).",
         bg=BG_COLOR,
         fg="#888888",
-        font=(
-            "Segoe UI",
-            _font_size(10)
-        ),
-    ).place(
-        x=22,
-        y=528,
-        width=585,
+        font=small_font,
+        anchor="center",
+    )
+    credit_two.grid(
+        row=17,
+        column=0,
+        columnspan=3,
+        sticky="ew",
+        padx=10,
+        pady=1,
     )
 
-    tk.Label(
+    credit_three = tk.Label(
         general_tab,
         text="Dan brainrot is spreading",
         bg=BG_COLOR,
         fg="#666666",
-        font=(
-            "Segoe UI",
-            _font_size(8)
-        ),
-    ).place(
-        x=22,
-        y=546,
-        width=585,
+        font=tiny_font,
+        anchor="center",
+    )
+    credit_three.grid(
+        row=18,
+        column=0,
+        columnspan=3,
+        sticky="ew",
+        padx=10,
+        pady=1,
     )
 
     config_path_text = str(
         config_manager.get_config_path()
     )
 
-    tk.Label(
+    config_path_label = tk.Label(
         general_tab,
         text=tr(
             "config_path",
@@ -2328,19 +2558,25 @@ def open_settings(event=None):
         ),
         bg=BG_COLOR,
         fg="#777777",
-        font=(
-            "Segoe UI",
-            _font_size(11)
-        ),
+        font=small_font,
         anchor="w",
-    ).place(
-        x=22,
-        y=575,
-        width=585,
+        justify="left",
+    )
+    config_path_label.grid(
+        row=19,
+        column=0,
+        columnspan=3,
+        sticky="ew",
+        padx=10,
+        pady=(8, 5),
     )
 
+    # --------------------------------------------------------
+    # GUARDAR / CANCELAR
+    # --------------------------------------------------------
     def _on_close():
         global _settings_window
+
         _settings_window = None
         win.destroy()
 
@@ -2468,8 +2704,23 @@ def open_settings(event=None):
         _settings_window = None
         win.destroy()
 
-    tk.Button(
+    button_bar = tk.Frame(
         general_tab,
+        bg=BG_COLOR,
+        bd=0,
+        highlightthickness=0,
+    )
+    button_bar.grid(
+        row=20,
+        column=0,
+        columnspan=3,
+        sticky="e",
+        padx=10,
+        pady=(7, 8),
+    )
+
+    cancel_button = tk.Button(
+        button_bar,
         text=tr("cancel"),
         command=_on_close,
         bg=button_bg,
@@ -2477,16 +2728,18 @@ def open_settings(event=None):
         activebackground="#333333",
         activeforeground=fg,
         relief="flat",
+        bd=0,
         font=small_font,
-    ).place(
-        x=410,
-        y=608,
-        width=90,
-        height=28,
+        padx=18,
+        pady=5,
+    )
+    cancel_button.pack(
+        side="left",
+        padx=(0, 8),
     )
 
-    tk.Button(
-        general_tab,
+    save_button = tk.Button(
+        button_bar,
         text=tr("save"),
         command=_save_settings,
         bg="#FFFFFF",
@@ -2494,17 +2747,207 @@ def open_settings(event=None):
         activebackground="#DDDDDD",
         activeforeground="#000000",
         relief="flat",
+        bd=0,
         font=small_font,
-    ).place(
-        x=510,
-        y=608,
-        width=96,
-        height=28,
+        padx=20,
+        pady=5,
+    )
+    save_button.pack(
+        side="left",
+    )
+
+    # --------------------------------------------------------
+    # RESPONSIVE RESIZE
+    # --------------------------------------------------------
+    hint_labels = (
+        language_hint,
+        path_hint,
+        global_hotkeys_hint,
+        keybind_hint,
+        config_path_label,
+    )
+
+    def _resize_settings_ui(event=None):
+        if (
+            event is not None
+            and event.widget is not win
+        ):
+            return
+
+        width = max(
+            1,
+            win.winfo_width()
+        )
+        height = max(
+            1,
+            win.winfo_height()
+        )
+
+        scale_x = (
+            width
+            / SETTINGS_BASE_WIDTH
+        )
+        scale_y = (
+            height
+            / SETTINGS_BASE_HEIGHT
+        )
+
+        # La tipografía crece y disminuye junto con la ventana,
+        # pero dentro de límites razonables para mantener legibilidad.
+        scale = max(
+            0.78,
+            min(
+                1.45,
+                min(
+                    scale_x,
+                    scale_y
+                )
+            )
+        )
+
+        title_font.configure(
+            size=max(
+                14,
+                int(
+                    round(
+                        base_font_sizes["title"]
+                        * scale
+                    )
+                )
+            )
+        )
+        normal_font.configure(
+            size=max(
+                9,
+                int(
+                    round(
+                        base_font_sizes["normal"]
+                        * scale
+                    )
+                )
+            )
+        )
+        small_font.configure(
+            size=max(
+                8,
+                int(
+                    round(
+                        base_font_sizes["small"]
+                        * scale
+                    )
+                )
+            )
+        )
+        tiny_font.configure(
+            size=max(
+                7,
+                int(
+                    round(
+                        base_font_sizes["tiny"]
+                        * scale
+                    )
+                )
+            )
+        )
+        tab_button_font.configure(
+            size=max(
+                9,
+                int(
+                    round(
+                        base_font_sizes["tab"]
+                        * scale
+                    )
+                )
+            )
+        )
+
+        tab_pad_x = max(
+            18,
+            int(
+                round(
+                    32 * scale
+                )
+            )
+        )
+        tab_pad_y = max(
+            7,
+            int(
+                round(
+                    11 * scale
+                )
+            )
+        )
+
+        for button in (
+            tab_buttons.values()
+        ):
+            button.configure(
+                padx=tab_pad_x,
+                pady=tab_pad_y,
+            )
+
+        # Los textos explicativos se reacomodan en varias líneas
+        # en ventanas estrechas y aprovechan más ancho en grandes.
+        wrap = max(
+            360,
+            width - 100
+        )
+
+        for label in hint_labels:
+            label.configure(
+                wraplength=wrap
+            )
+
+        # Ajustar márgenes exteriores de manera proporcional.
+        outer_pad = max(
+            10,
+            int(
+                round(
+                    14 * scale
+                )
+            )
+        )
+
+        tabs_bar.pack_configure(
+            padx=outer_pad,
+            pady=(
+                outer_pad,
+                0
+            ),
+        )
+        content_host.pack_configure(
+            padx=outer_pad,
+            pady=(
+                max(
+                    6,
+                    int(
+                        round(
+                            8 * scale
+                        )
+                    )
+                ),
+                outer_pad
+            ),
+        )
+
+    win.bind(
+        "<Configure>",
+        _resize_settings_ui,
+        add="+",
+    )
+
+    _show_settings_tab(
+        "general"
     )
 
     win.protocol(
         "WM_DELETE_WINDOW",
         _on_close
+    )
+
+    win.after(
+        0,
+        _resize_settings_ui
     )
     win.focus_force()
 
