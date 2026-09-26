@@ -5,6 +5,7 @@ import time
 import threading
 import ctypes
 import tkinter as tk
+import tkinter.font as tkfont
 from tkinter import filedialog, messagebox, ttk
 
 from pathlib import Path
@@ -82,6 +83,29 @@ MODE_WIDTHS = {
     MODE_COMPACT: COMPACT_WIDTH,
     MODE_STATISTICS: STATISTICS_WIDTH,
     MODE_FULL: FULL_WIDTH,
+}
+
+MODE_NAME_TO_VALUE = {
+    name: index
+    for index, name in enumerate(MODE_NAMES)
+}
+
+WINDOW_SIZE_PRESETS = {
+    "small": {
+        MODE_COMPACT: (420, 65),
+        MODE_STATISTICS: (500, 110),
+        MODE_FULL: (500, 300),
+    },
+    "medium": {
+        MODE_COMPACT: (550, 65),
+        MODE_STATISTICS: (650, 120),
+        MODE_FULL: (650, 370),
+    },
+    "large": {
+        MODE_COMPACT: (750, 80),
+        MODE_STATISTICS: (800, 150),
+        MODE_FULL: (850, 500),
+    },
 }
 
 BG_COLOR = "#000000"
@@ -180,7 +204,10 @@ connection_phase = "connecting"
 
 _last_dan_label = "."
 _last_dan_numeric = ""
-current_mode = MODE_FULL
+current_mode = MODE_NAME_TO_VALUE.get(
+    str(APP_CONFIG.get("layout", "full")).strip().lower(),
+    MODE_FULL,
+)
 
 # Estado de la ventana.
 always_on_top = True
@@ -286,6 +313,36 @@ _set_etterna_root(
 )
 
 
+def _clear_bridge_files():
+    """
+    Elimina los estados persistentes de la sesión anterior.
+
+    Los Lua bridges vuelven a crear estos archivos cuando Etterna
+    produzca información nueva, evitando mostrar el último chart
+    simplemente porque quedó guardado en Save/.
+    """
+    for path in (
+        BRIDGE_FILE,
+        GAMEPLAY_FILE,
+        MENU_FILE,
+    ):
+        if path is None:
+            continue
+
+        try:
+            if path.exists():
+                path.unlink()
+        except OSError as exc:
+            print(
+                "[Etterna] Could not clear stale bridge file:",
+                path,
+                exc,
+            )
+
+
+_clear_bridge_files()
+
+
 # --- Window setup ---
 
 if os.name == "nt" and hasattr(ctypes, "windll"):
@@ -297,11 +354,18 @@ if os.name == "nt" and hasattr(ctypes, "windll"):
 root = tk.Tk()
 root.tk.call("tk", "scaling", 1.0)
 root.title("DanielEtterna")
-root.geometry(f"{WINDOW_WIDTH}x{FULL_HEIGHT}")
+root.geometry(
+    f"{MODE_WIDTHS[current_mode]}x{MODE_HEIGHTS[current_mode]}"
+)
 root.resizable(True, True)
 
 # Permitimos reducir la ventana sin romper el modo compacto.
-root.minsize(350, BAR_HEIGHT + 80)
+_initial_min_height = {
+    MODE_COMPACT: COMPACT_HEIGHT,
+    MODE_STATISTICS: STATISTICS_HEIGHT,
+    MODE_FULL: BAR_HEIGHT + 80,
+}[current_mode]
+root.minsize(350, _initial_min_height)
 
 root.configure(bg=BG_COLOR)
 root.attributes("-topmost", True)
@@ -391,6 +455,218 @@ def _get_text_y_offset():
     return graph.graph_height if current_mode == MODE_FULL else 0
 
 
+def _canvas_text_width():
+    width = canvas.winfo_width()
+    return width if width > 1 else MODE_WIDTHS[current_mode]
+
+
+def _font_with_size(font, size):
+    if not isinstance(font, tuple) or len(font) < 2:
+        return font
+
+    return (
+        font[0],
+        max(8, int(round(size))),
+        *font[2:]
+    )
+
+
+def _measure_text(text, font):
+    try:
+        return tkfont.Font(
+            root=root,
+            font=font,
+        ).measure(str(text))
+    except Exception:
+        size = (
+            abs(int(font[1]))
+            if isinstance(font, tuple) and len(font) >= 2
+            else 12
+        )
+        return max(
+            1,
+            int(len(str(text)) * size * 0.60)
+        )
+
+
+def _fit_font_to_width(
+    text,
+    font,
+    available_width,
+    min_size=8,
+):
+    available_width = max(
+        1,
+        int(available_width)
+    )
+
+    current_width = _measure_text(
+        text,
+        font
+    )
+
+    if current_width <= available_width:
+        return font
+
+    base_size = (
+        abs(int(font[1]))
+        if isinstance(font, tuple) and len(font) >= 2
+        else 12
+    )
+
+    new_size = max(
+        min_size,
+        int(
+            base_size
+            * available_width
+            / max(current_width, 1)
+        )
+    )
+
+    fitted = _font_with_size(
+        font,
+        new_size
+    )
+
+    while (
+        new_size > min_size
+        and _measure_text(
+            text,
+            fitted
+        ) > available_width
+    ):
+        new_size -= 1
+        fitted = _font_with_size(
+            font,
+            new_size
+        )
+
+    return fitted
+
+
+def _fit_dan_row_fonts(
+    prefix_text,
+    dan_text,
+    numeric_text,
+):
+    available = max(
+        1,
+        _canvas_text_width() - 28
+    )
+
+    prefix_width = _measure_text(
+        prefix_text,
+        FONT_PREFIX
+    )
+    dan_width = _measure_text(
+        dan_text,
+        FONT_DAN
+    )
+    numeric_width = (
+        _measure_text(
+            numeric_text,
+            FONT_PREFIX
+        )
+        if numeric_text
+        else 0
+    )
+
+    total = (
+        prefix_width
+        + 8
+        + dan_width
+        + (
+            10 + numeric_width
+            if numeric_text
+            else 0
+        )
+    )
+
+    if total <= available:
+        return (
+            FONT_PREFIX,
+            FONT_DAN,
+            FONT_PREFIX,
+        )
+
+    scale = (
+        available
+        / max(total, 1)
+    )
+
+    prefix_size = max(
+        12,
+        int(abs(FONT_PREFIX[1]) * scale)
+    )
+    dan_size = max(
+        16,
+        int(abs(FONT_DAN[1]) * scale)
+    )
+
+    prefix_font = _font_with_size(
+        FONT_PREFIX,
+        prefix_size
+    )
+    dan_font = _font_with_size(
+        FONT_DAN,
+        dan_size
+    )
+    numeric_font = prefix_font
+
+    for _ in range(40):
+        fitted_total = (
+            _measure_text(
+                prefix_text,
+                prefix_font
+            )
+            + 8
+            + _measure_text(
+                dan_text,
+                dan_font
+            )
+            + (
+                10
+                + _measure_text(
+                    numeric_text,
+                    numeric_font
+                )
+                if numeric_text
+                else 0
+            )
+        )
+
+        if fitted_total <= available:
+            break
+
+        if prefix_size > 12:
+            prefix_size -= 1
+
+        if dan_size > 16:
+            dan_size -= 1
+
+        prefix_font = _font_with_size(
+            FONT_PREFIX,
+            prefix_size
+        )
+        dan_font = _font_with_size(
+            FONT_DAN,
+            dan_size
+        )
+        numeric_font = prefix_font
+
+        if (
+            prefix_size == 12
+            and dan_size == 16
+        ):
+            break
+
+    return (
+        prefix_font,
+        dan_font,
+        numeric_font,
+    )
+
+
 # --- Connection screen ---
 
 def _draw_connection_screen():
@@ -428,10 +704,17 @@ def _draw_connection_screen():
         dot_cx + dot_r, cy + dot_r,
         fill=dot_color, outline="",
     )
+    connection_font = _fit_font_to_width(
+        label,
+        FONT_CONNECTION,
+        _canvas_text_width() - (dot_cx + dot_r + 24),
+        min_size=10,
+    )
+
     title = canvas.create_text(
         dot_cx + dot_r + 10, cy,
         text=label, fill="#AAAAAA",
-        font=FONT_CONNECTION, anchor="w",
+        font=connection_font, anchor="w",
     )
     _connection_items += [inner, title]
     _pulse_connection(inner, dot_color, 0)
@@ -506,6 +789,7 @@ def get_relevant_skillsets(msd_result):
 
 def draw_msd(msd_result, color):
     global msd_items
+
     for item in msd_items:
         canvas.delete(item)
     msd_items.clear()
@@ -513,24 +797,65 @@ def draw_msd(msd_result, color):
     if current_mode == MODE_COMPACT:
         return
 
+    y = _get_text_y_offset() + 80
+    available_width = max(
+        1,
+        _canvas_text_width() - 28
+    )
+
     if msd_result is None:
-        y = _get_text_y_offset() + 80
+        text = i18n.t(
+            "msd_error",
+            current_language
+        )
+
+        font = _fit_font_to_width(
+            text,
+            FONT_MSD_SKILL,
+            available_width,
+            min_size=12,
+        )
+
         msd_items += draw_text(
             14,
             y,
-            i18n.t("msd_error", current_language),
+            text,
             "#FF4444",
-            FONT_MSD_SKILL
+            font
         )
         return
 
-    overall, top3, _ = get_relevant_skillsets(msd_result)
+    overall, top3, _ = get_relevant_skillsets(
+        msd_result
+    )
+
     if not top3:
         return
 
-    skillset_str = ", ".join(key.capitalize() for key, _ in top3)
-    y = _get_text_y_offset() + 80
-    msd_items += draw_text(14, y, f"{skillset_str}  {overall:.2f}MSD", "#FFFFFF", FONT_MSD_SKILL)
+    skillset_str = ", ".join(
+        key.capitalize()
+        for key, _ in top3
+    )
+
+    text = (
+        f"{skillset_str}  "
+        f"{overall:.2f}MSD"
+    )
+
+    font = _fit_font_to_width(
+        text,
+        FONT_MSD_SKILL,
+        available_width,
+        min_size=12,
+    )
+
+    msd_items += draw_text(
+        14,
+        y,
+        text,
+        "#FFFFFF",
+        font
+    )
 
 
 def draw_accent_bar():
@@ -557,8 +882,7 @@ def fade_items(text_item, bar_item, start_color, end_color, steps=14):
             canvas.itemconfig(text_item, fill=end_color)
             canvas.itemconfig(bar_item, fill=end_color)
             current_bar_color = end_color
-            if current_mode == MODE_FULL:
-                graph.set_color(end_color)
+            graph.set_color(end_color)
 
     _step(0)
 
@@ -576,9 +900,11 @@ def update_dan_text(dan_label, dan_numeric):
     if is_loading_text(dan_label):
         fill = "#888888"
         new_bar_color = "#333333"
+
     elif dan_label.startswith("<"):
         fill = "#7DF0FF"
         new_bar_color = fill
+
     else:
         if "-" in dan_label:
             base = dan_label.split("-", 1)[1]
@@ -589,82 +915,189 @@ def update_dan_text(dan_label, dan_numeric):
             base,
             "#FFFFFF"
         )
-
         new_bar_color = fill
 
     bar = draw_accent_bar()
+
     y_off = _get_text_y_offset()
     y = y_off + 28
     prefix_y = y + PREFIX_Y_OFFSET
 
+    prefix_text = i18n.t(
+        "estimated_dan",
+        current_language
+    )
+
+    is_vibro = False
+
+    if (
+        not is_loading_text(dan_label)
+        and dan_label not in (
+            "Invalid Beatmap",
+            "? ? ? ? ?"
+        )
+        and current_msd_data is not None
+    ):
+        _, _, is_vibro = get_relevant_skillsets(
+            current_msd_data
+        )
+
+    if dan_label == "? ? ? ? ?":
+        display_label = dan_label
+
+    elif is_vibro:
+        display_label = "VIBRO"
+
+    else:
+        display_label = (
+            i18n.t(
+                "invalid_beatmap",
+                current_language
+            )
+            if dan_label == "Invalid Beatmap"
+            else dan_label
+        )
+
+    display_numeric = ""
+
+    if (
+        not is_loading_text(dan_label)
+        and dan_numeric not in ("", None)
+    ):
+        display_numeric = (
+            "N/A"
+            if is_vibro
+            else f"({dan_numeric})"
+        )
+
+    (
+        prefix_font,
+        dan_font,
+        numeric_font
+    ) = _fit_dan_row_fonts(
+        prefix_text,
+        display_label,
+        display_numeric
+    )
+
     prefix = draw_text(
         14,
         prefix_y,
-        i18n.t("estimated_dan", current_language),
+        prefix_text,
         PREFIX_FILL,
-        FONT_PREFIX
+        prefix_font
     )
     text_items.extend(prefix)
 
     bbox = canvas.bbox(prefix[-1])
-    pw = bbox[2] - bbox[0] if bbox else 0
+    pw = (
+        bbox[2] - bbox[0]
+        if bbox
+        else 0
+    )
     xpos = 14 + pw + 8
 
-    is_vibro = False
-    if (
-        not is_loading_text(dan_label)
-        and dan_label not in ("Invalid Beatmap", "? ? ? ? ?")
-        and current_msd_data is not None
-    ):
-        _, _, is_vibro = get_relevant_skillsets(current_msd_data)
-
     if dan_label == "? ? ? ? ?":
-        dan_items = draw_outline_text(xpos, y, dan_label, fill="#000000", outline="#FFFFFF", font=FONT_DAN)
-        new_bar_color = "#FFFFFF"
-    elif is_vibro:
-        dan_items = draw_text(xpos, y, "VIBRO", "#FFFFFF", FONT_DAN)
-        new_bar_color = "#FFFFFF"
-    else:
-        display_label = (
-            i18n.t("invalid_beatmap", current_language)
-            if dan_label == "Invalid Beatmap"
-            else dan_label
+        dan_items = draw_outline_text(
+            xpos,
+            y,
+            display_label,
+            fill="#000000",
+            outline="#FFFFFF",
+            font=dan_font
         )
+        new_bar_color = "#FFFFFF"
+
+    elif is_vibro:
+        dan_items = draw_text(
+            xpos,
+            y,
+            display_label,
+            "#FFFFFF",
+            dan_font
+        )
+        new_bar_color = "#FFFFFF"
+
+    else:
         dan_items = draw_text(
             xpos,
             y,
             display_label,
             current_bar_color,
-            FONT_DAN
+            dan_font
         )
 
     text_items.extend(dan_items)
 
-    if not is_loading_text(dan_label) and dan_numeric not in ("", None):
-        dan_bbox = canvas.bbox(dan_items[-1])
-        numeric_x = (dan_bbox[2] if dan_bbox else xpos) + 10
-        display_numeric = "N/A" if is_vibro else f"({dan_numeric})"
-        text_items.extend(draw_text(numeric_x, prefix_y, display_numeric, "#FFFFFF", FONT_PREFIX))
+    if display_numeric:
+        dan_bbox = canvas.bbox(
+            dan_items[-1]
+        )
+        numeric_x = (
+            (
+                dan_bbox[2]
+                if dan_bbox
+                else xpos
+            )
+            + 10
+        )
+
+        text_items.extend(
+            draw_text(
+                numeric_x,
+                prefix_y,
+                display_numeric,
+                "#FFFFFF",
+                numeric_font
+            )
+        )
 
     if current_mode != MODE_COMPACT:
-        draw_msd(current_msd_data, new_bar_color if not is_loading_text(dan_label) else "#333333")
+        draw_msd(
+            current_msd_data,
+            (
+                new_bar_color
+                if not is_loading_text(dan_label)
+                else "#333333"
+            )
+        )
     else:
         for item in msd_items:
             canvas.delete(item)
         msd_items.clear()
 
-    if current_mode == MODE_FULL:
-        graph.set_color(
-            new_bar_color if (is_loading_text(dan_label) or dan_label == "? ? ? ? ?") else current_bar_color
+    # El color del gráfico se mantiene sincronizado aunque esté oculto.
+    graph.set_color(
+        new_bar_color
+        if (
+            is_loading_text(dan_label)
+            or dan_label == "? ? ? ? ?"
         )
+        else current_bar_color
+    )
 
-    if not is_loading_text(dan_label) and dan_label != "? ? ? ? ?":
-        fade_items(dan_items[-1], bar, current_bar_color, new_bar_color)
+    if (
+        not is_loading_text(dan_label)
+        and dan_label != "? ? ? ? ?"
+    ):
+        fade_items(
+            dan_items[-1],
+            bar,
+            current_bar_color,
+            new_bar_color
+        )
     else:
-        canvas.itemconfig(bar, fill=new_bar_color)
+        canvas.itemconfig(
+            bar,
+            fill=new_bar_color
+        )
         current_bar_color = new_bar_color
+
         if dan_label != "? ? ? ? ?":
-            canvas.itemconfig(dan_items[-1], fill=fill)
+            canvas.itemconfig(
+                dan_items[-1],
+                fill=fill
+            )
 
 
 def set_dan_text(label, numeric):
@@ -799,6 +1232,47 @@ def _on_window_resize(event):
 
 # --- Mode switching ---
 
+def _apply_window_preset(preset_name):
+    preset = WINDOW_SIZE_PRESETS.get(
+        preset_name
+    )
+
+    if not preset:
+        return
+
+    width, height = preset[current_mode]
+
+    root.geometry(
+        f"{width}x{height}"
+    )
+
+    canvas.configure(
+        width=width,
+        height=height,
+    )
+
+    root.after(
+        100,
+        _resize_contents
+    )
+
+
+def _save_layout_preference():
+    APP_CONFIG["layout"] = (
+        MODE_NAMES[current_mode]
+    )
+
+    try:
+        config_manager.save_config(
+            APP_CONFIG
+        )
+    except OSError as exc:
+        print(
+            "[Config] Could not save layout:",
+            exc
+        )
+
+
 def _apply_mode():
     h = MODE_HEIGHTS[current_mode]
     w = MODE_WIDTHS[current_mode]
@@ -816,6 +1290,8 @@ def _apply_mode():
 
     root.geometry(f"{w}x{h}")
     canvas.configure(width=w, height=h)
+
+    _save_layout_preference()
 
     if current_mode == MODE_FULL:
         graph.show()
@@ -1219,7 +1695,7 @@ def open_settings(event=None):
     _settings_window = win
 
     win.title(tr("settings_window_title"))
-    win.geometry("630x560")
+    win.geometry("650x640")
     win.resizable(False, False)
     win.configure(bg=BG_COLOR)
     win.transient(root)
@@ -1228,9 +1704,38 @@ def open_settings(event=None):
     _set_dark_title_bar(win)
 
     try:
-        win.attributes("-topmost", always_on_top)
+        win.attributes(
+            "-topmost",
+            always_on_top
+        )
     except Exception:
         pass
+
+    notebook = ttk.Notebook(win)
+    notebook.place(
+        x=10,
+        y=10,
+        width=630,
+        height=620,
+    )
+
+    general_tab = tk.Frame(
+        notebook,
+        bg=BG_COLOR,
+    )
+    style_tab = tk.Frame(
+        notebook,
+        bg=BG_COLOR,
+    )
+
+    notebook.add(
+        general_tab,
+        text=tr("general_tab"),
+    )
+    notebook.add(
+        style_tab,
+        text=tr("style_tab"),
+    )
 
     title_font = (
         "Segoe UI Semibold",
@@ -1251,70 +1756,76 @@ def open_settings(event=None):
     muted = "#AAAAAA"
 
     tk.Label(
-        win,
+        general_tab,
         text=tr("settings_heading"),
         bg=BG_COLOR,
         fg=fg,
         font=title_font,
-    ).place(x=22, y=18)
+    ).place(x=22, y=15)
 
     # --------------------------------------------------------
     # IDIOMA
     # --------------------------------------------------------
     tk.Label(
-        win,
+        general_tab,
         text=tr("language"),
         bg=BG_COLOR,
         fg=fg,
         font=normal_font,
-    ).place(x=22, y=66)
+    ).place(x=22, y=55)
 
     language_var = tk.StringVar(
-        value=i18n.language_name(current_language)
+        value=i18n.language_name(
+            current_language
+        )
     )
 
     language_combo = ttk.Combobox(
-        win,
+        general_tab,
         textvariable=language_var,
-        values=list(i18n.SUPPORTED_LANGUAGES.values()),
+        values=list(
+            i18n.SUPPORTED_LANGUAGES.values()
+        ),
         state="readonly",
         font=small_font,
     )
     language_combo.place(
         x=205,
-        y=64,
+        y=53,
         width=180,
         height=28,
     )
 
     tk.Label(
-        win,
+        general_tab,
         text=tr("language_hint"),
         bg=BG_COLOR,
         fg=muted,
         font=small_font,
-    ).place(x=22, y=98)
+    ).place(x=22, y=87)
 
     # --------------------------------------------------------
     # RUTA ETTERNA
     # --------------------------------------------------------
     tk.Label(
-        win,
+        general_tab,
         text=tr("etterna_path"),
         bg=BG_COLOR,
         fg=fg,
         font=normal_font,
-    ).place(x=22, y=132)
+    ).place(x=22, y=116)
 
     current_path = (
         str(ETTERNA_ROOT)
         if ETTERNA_ROOT is not None
         else ""
     )
-    path_var = tk.StringVar(value=current_path)
+    path_var = tk.StringVar(
+        value=current_path
+    )
 
     path_entry = tk.Entry(
-        win,
+        general_tab,
         textvariable=path_var,
         bg=entry_bg,
         fg=fg,
@@ -1324,15 +1835,20 @@ def open_settings(event=None):
     )
     path_entry.place(
         x=22,
-        y=160,
+        y=144,
         width=470,
         height=30,
     )
 
     def _browse_etterna():
-        initial = path_var.get().strip()
+        initial = (
+            path_var.get().strip()
+        )
 
-        if not initial or not Path(initial).exists():
+        if (
+            not initial
+            or not Path(initial).exists()
+        ):
             initial = str(Path.home())
 
         selected = filedialog.askdirectory(
@@ -1345,7 +1861,7 @@ def open_settings(event=None):
             path_var.set(selected)
 
     tk.Button(
-        win,
+        general_tab,
         text=tr("browse"),
         command=_browse_etterna,
         bg=button_bg,
@@ -1356,37 +1872,86 @@ def open_settings(event=None):
         font=small_font,
     ).place(
         x=502,
-        y=160,
+        y=144,
         width=105,
         height=30,
     )
 
     tk.Label(
-        win,
+        general_tab,
         text=tr("path_hint"),
         bg=BG_COLOR,
         fg=muted,
         font=small_font,
-    ).place(x=22, y=196)
+    ).place(x=22, y=180)
+
+    # --------------------------------------------------------
+    # TAMAÑO DE VENTANA
+    # --------------------------------------------------------
+    tk.Label(
+        general_tab,
+        text=tr("window_size"),
+        bg=BG_COLOR,
+        fg=fg,
+        font=normal_font,
+    ).place(x=22, y=215)
+
+    size_buttons = [
+        (
+            tr("size_small"),
+            "small",
+            205,
+        ),
+        (
+            tr("size_medium"),
+            "medium",
+            315,
+        ),
+        (
+            tr("size_large"),
+            "large",
+            425,
+        ),
+    ]
+
+    for label, preset, x in size_buttons:
+        tk.Button(
+            general_tab,
+            text=label,
+            command=lambda p=preset: (
+                _apply_window_preset(p)
+            ),
+            bg=button_bg,
+            fg=fg,
+            activebackground="#333333",
+            activeforeground=fg,
+            relief="flat",
+            font=small_font,
+        ).place(
+            x=x,
+            y=210,
+            width=100,
+            height=29,
+        )
 
     # --------------------------------------------------------
     # KEYBINDS
     # --------------------------------------------------------
     tk.Label(
-        win,
+        general_tab,
         text=tr("keybinds"),
         bg=BG_COLOR,
         fg=fg,
         font=normal_font,
-    ).place(x=22, y=234)
+    ).place(x=22, y=258)
 
     tk.Label(
-        win,
+        general_tab,
         text=tr("keybind_hint"),
         bg=BG_COLOR,
         fg=muted,
         font=small_font,
-    ).place(x=22, y=260)
+    ).place(x=22, y=284)
 
     key_vars = {
         action: tk.StringVar(
@@ -1400,17 +1965,26 @@ def open_settings(event=None):
     }
 
     rows = [
-        (tr("always_on_top"), "toggle_topmost"),
-        (tr("cycle_mode"), "cycle_mode"),
-        (tr("open_settings"), "open_settings"),
+        (
+            tr("always_on_top"),
+            "toggle_topmost",
+        ),
+        (
+            tr("cycle_mode"),
+            "cycle_mode",
+        ),
+        (
+            tr("open_settings"),
+            "open_settings",
+        ),
     ]
 
-    y = 294
+    y = 318
     key_entries = {}
 
     for label, action in rows:
         tk.Label(
-            win,
+            general_tab,
             text=label,
             bg=BG_COLOR,
             fg=fg,
@@ -1422,27 +1996,35 @@ def open_settings(event=None):
             width=175,
         )
 
-        key_entries[action] = _make_key_capture_entry(
-            parent=win,
-            variable=key_vars[action],
-            x=205,
-            y=y,
-            width=180,
-            height=29,
-            bg=entry_bg,
-            fg=fg,
-            font=small_font,
+        key_entries[action] = (
+            _make_key_capture_entry(
+                parent=general_tab,
+                variable=key_vars[action],
+                x=205,
+                y=y,
+                width=180,
+                height=29,
+                bg=entry_bg,
+                fg=fg,
+                font=small_font,
+            )
         )
 
         y += 38
 
     def _restore_defaults():
-        defaults = config_manager.DEFAULT_CONFIG["keybinds"]
-        for action, value in defaults.items():
+        defaults = (
+            config_manager
+            .DEFAULT_CONFIG["keybinds"]
+        )
+
+        for action, value in (
+            defaults.items()
+        ):
             key_vars[action].set(value)
 
     tk.Button(
-        win,
+        general_tab,
         text=tr("restore_keybinds"),
         command=_restore_defaults,
         bg=button_bg,
@@ -1453,7 +2035,7 @@ def open_settings(event=None):
         font=small_font,
     ).place(
         x=405,
-        y=294,
+        y=318,
         width=180,
         height=29,
     )
@@ -1462,49 +2044,58 @@ def open_settings(event=None):
     # CREDITS
     # --------------------------------------------------------
     credits_separator = tk.Frame(
-        win,
+        general_tab,
         bg="#404040",
     )
     credits_separator.place(
         x=22,
-        y=414,
+        y=440,
         width=585,
         height=1,
     )
 
     tk.Label(
-        win,
+        general_tab,
         text="Daniel by TheBagelOfMan.",
         bg=BG_COLOR,
         fg="#888888",
-        font=("Segoe UI", _font_size(10)),
+        font=(
+            "Segoe UI",
+            _font_size(10)
+        ),
     ).place(
         x=22,
-        y=424,
+        y=450,
         width=585,
     )
 
     tk.Label(
-        win,
+        general_tab,
         text="Port by ChatGPT (and JoseMGS).",
         bg=BG_COLOR,
         fg="#888888",
-        font=("Segoe UI", _font_size(10)),
+        font=(
+            "Segoe UI",
+            _font_size(10)
+        ),
     ).place(
         x=22,
-        y=442,
+        y=468,
         width=585,
     )
 
     tk.Label(
-        win,
+        general_tab,
         text="Dan brainrot is spreading",
         bg=BG_COLOR,
         fg="#666666",
-        font=("Segoe UI", _font_size(8)),
+        font=(
+            "Segoe UI",
+            _font_size(8)
+        ),
     ).place(
         x=22,
-        y=460,
+        y=486,
         width=585,
     )
 
@@ -1513,18 +2104,21 @@ def open_settings(event=None):
     )
 
     tk.Label(
-        win,
+        general_tab,
         text=tr(
             "config_path",
             path=config_path_text,
         ),
         bg=BG_COLOR,
         fg="#777777",
-        font=("Segoe UI", _font_size(12)),
+        font=(
+            "Segoe UI",
+            _font_size(11)
+        ),
         anchor="w",
     ).place(
         x=22,
-        y=492,
+        y=515,
         width=585,
     )
 
@@ -1539,14 +2133,19 @@ def open_settings(event=None):
         global current_language
         global _settings_window
 
-        proposed_language = i18n.language_code_from_name(
-            language_var.get()
+        proposed_language = (
+            i18n.language_code_from_name(
+                language_var.get()
+            )
         )
 
-        path_value = path_var.get().strip()
+        path_value = (
+            path_var.get().strip()
+        )
 
         valid_path, path_message = (
-            config_manager.validate_etterna_root(
+            config_manager
+            .validate_etterna_root(
                 path_value,
                 proposed_language,
             )
@@ -1564,7 +2163,10 @@ def open_settings(event=None):
             return
 
         proposed = {
-            action: key_vars[action].get().strip()
+            action:
+                key_vars[action]
+                .get()
+                .strip()
             for action in key_vars
         }
 
@@ -1591,11 +2193,14 @@ def open_settings(event=None):
         new_config = {
             "etterna_root": clean_path,
             "language": proposed_language,
+            "layout": MODE_NAMES[current_mode],
             "keybinds": dict(proposed),
         }
 
         try:
-            config_manager.save_config(new_config)
+            config_manager.save_config(
+                new_config
+            )
         except OSError as exc:
             messagebox.showerror(
                 i18n.t(
@@ -1608,10 +2213,17 @@ def open_settings(event=None):
             return
 
         APP_CONFIG = new_config
-        current_language = proposed_language
-        current_keybinds = dict(proposed)
+        current_language = (
+            proposed_language
+        )
+        current_keybinds = dict(
+            proposed
+        )
 
-        _set_etterna_root(clean_path)
+        _set_etterna_root(
+            clean_path
+        )
+        _clear_bridge_files()
         apply_keybinds()
 
         if connection_phase != "ready":
@@ -1631,7 +2243,7 @@ def open_settings(event=None):
         win.destroy()
 
     tk.Button(
-        win,
+        general_tab,
         text=tr("cancel"),
         command=_on_close,
         bg=button_bg,
@@ -1642,13 +2254,13 @@ def open_settings(event=None):
         font=small_font,
     ).place(
         x=410,
-        y=520,
+        y=548,
         width=90,
         height=28,
     )
 
     tk.Button(
-        win,
+        general_tab,
         text=tr("save"),
         command=_save_settings,
         bg="#FFFFFF",
@@ -1659,12 +2271,15 @@ def open_settings(event=None):
         font=small_font,
     ).place(
         x=510,
-        y=520,
+        y=548,
         width=96,
         height=28,
     )
 
-    win.protocol("WM_DELETE_WINDOW", _on_close)
+    win.protocol(
+        "WM_DELETE_WINDOW",
+        _on_close
+    )
     win.focus_force()
 
     return "break"
@@ -1721,10 +2336,7 @@ def _tick():
     # GRAFICO
     # ========================================================
 
-    if (
-        connection_phase == "ready"
-        and current_mode == MODE_FULL
-    ):
+    if connection_phase == "ready":
 
         with lock:
 
@@ -3248,26 +3860,27 @@ def calculation_loop():
             last_state = state
 
 
+            # El gráfico recibe los datos aunque el layout actual
+            # no lo muestre, para que aparezca actualizado al volver.
+            root.after(
+                0,
+                lambda _t=t_arr,
+                _d=d_arr:
+                graph.set_data(
+                    _t,
+                    _d
+                )
+            )
+
+            root.after(
+                0,
+                lambda:
+                graph.set_color(
+                    current_bar_color
+                )
+            )
+
             if current_mode == MODE_FULL:
-
-                root.after(
-                    0,
-                    lambda _t=t_arr,
-                    _d=d_arr:
-                    graph.set_data(
-                        _t,
-                        _d
-                    )
-                )
-
-                root.after(
-                    0,
-                    lambda:
-                    graph.set_color(
-                        current_bar_color
-                    )
-                )
-
                 root.after(
                     0,
                     graph.show
