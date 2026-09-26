@@ -7,10 +7,11 @@ import i18n
 
 
 DEFAULT_CONFIG = {
-    "config_version": 4,
+    "config_version": 5,
     "etterna_root": "",
     "language": i18n.DEFAULT_LANGUAGE,
     "layout": "full",
+    "global_hotkeys": False,
     "keybinds": {
         "toggle_topmost": "F1",
         "cycle_mode": "Tab",
@@ -60,6 +61,10 @@ def _merge_defaults(data):
     layout = str(data.get("layout", "full")).strip().lower()
     if layout in ("compact", "statistics", "full"):
         result["layout"] = layout
+
+    global_hotkeys = data.get("global_hotkeys")
+    if isinstance(global_hotkeys, bool):
+        result["global_hotkeys"] = global_hotkeys
 
     keybinds = data.get("keybinds")
     if isinstance(keybinds, dict):
