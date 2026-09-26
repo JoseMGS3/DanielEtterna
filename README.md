@@ -12,6 +12,8 @@ A real-time rice difficulty calculator for 4k Etterna. Supports .osu, .ssc and .
 - Switch layout: Tab
 - Open settings: Q
 
+Keybinds are focus-only by default. On Windows, enable **Detect keybinds outside DanielEtterna** in **Options → General** if you want the shortcuts to work while Etterna or another app has focus.
+
 
 ## Linux build BROKEN DO NOT USE
 

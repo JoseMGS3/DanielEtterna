@@ -113,7 +113,9 @@ class FastGraph:
         self._last_split_px = -1
 
     def update_position(self, song_time_ms, mod="NM"):
-        if not self._visible or self._played_rgb is None or self._unplayed_rgb is None:
+        # Keep the graph state current even while the canvas item is hidden.
+        # This lets layout changes reveal an already-synchronized graph.
+        if self._played_rgb is None or self._unplayed_rgb is None:
             return
 
         scale = {"DT": 2 / 3, "HT": 4 / 3}.get(mod, 1.0)
