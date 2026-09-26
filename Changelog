@@ -1,0 +1,15 @@
+## Version 1.1
+
+- Clears stale Etterna bridge state on startup so the previous chart is not shown.
+- Remembers the last selected layout.
+- Adds Small / Medium / Large preset window sizes in Options. (WIP)
+- Text automatically shrinks when the window is too narrow.
+- The strain graph keeps updating even when is not visible in the current layout.
+- New Style tab in options (empty for now).
+- The Options window is resizable, remembers its last size, and the text scales with the window.
+- Keybinds are focus-only by default, with a new option to behave as it did in version 1.0.
+
+
+## Version 1.0
+
+- Release :D
