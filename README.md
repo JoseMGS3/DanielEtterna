@@ -1,4 +1,4 @@
-# DanielEtterna
+# DanielEtterna v1.1
 
 A real-time rice difficulty calculator for 4k Etterna. Supports .osu, .ssc and .sm files. (Note: .sm/.ssc charts using WARPS are not currently supported.)
 
