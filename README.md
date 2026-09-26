@@ -1,17 +1,5 @@
 # DanielEtterna
 
-## Version 1.1
-
-- Clears stale Etterna bridge state on startup so the previous chart is not shown.
-- Remembers the last selected layout.
-- Adds Small / Medium / Large preset window sizes in Options.
-- Responsive text automatically shrinks when the window is too narrow.
-- The strain graph keeps updating even when the current layout hides it.
-- Options now includes a separate Style tab reserved for future customization.
-- The Options window is resizable, remembers its last size, uses larger borderless tabs, and its controls/text reflow and scale with the window.
-- Keybinds are focus-only by default; on Windows, Options → General can enable detection while another app has focus.
-
-
 A real-time rice difficulty calculator for 4k Etterna. Supports .osu, .ssc and .sm files. (Note: .sm/.ssc charts using WARPS are not currently supported.)
 
 **Ratings below Alpha Dan are enabled, but can be inaccurate.**
