@@ -7,7 +7,7 @@ import i18n
 
 
 DEFAULT_CONFIG = {
-    "config_version": 7,
+    "config_version": 8,
     "etterna_root": "",
     "language": i18n.DEFAULT_LANGUAGE,
     "layout": "full",
@@ -17,6 +17,8 @@ DEFAULT_CONFIG = {
         "height": 720,
     },
     "main_window_geometry": None,
+    "nomenclature": "standard",
+    "skin": "",
     "keybinds": {
         "toggle_topmost": "F1",
         "cycle_mode": "Tab",
@@ -127,6 +129,29 @@ def _merge_defaults(data):
                 min(main_y, 20000)
             ),
         }
+
+    nomenclature = str(
+        data.get(
+            "nomenclature",
+            "standard"
+        )
+    ).strip().lower()
+
+    if nomenclature in (
+        "standard",
+    ):
+        result["nomenclature"] = (
+            nomenclature
+        )
+
+    skin = data.get(
+        "skin"
+    )
+    if isinstance(
+        skin,
+        str
+    ):
+        result["skin"] = skin.strip()
 
     settings_window_size = data.get(
         "settings_window_size"
