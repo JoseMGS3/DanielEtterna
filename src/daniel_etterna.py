@@ -362,9 +362,56 @@ if os.name == "nt" and hasattr(ctypes, "windll"):
 root = tk.Tk()
 root.tk.call("tk", "scaling", 1.0)
 root.title(f"DanielEtterna {APP_VERSION}")
-root.geometry(
-    f"{MODE_WIDTHS[current_mode]}x{MODE_HEIGHTS[current_mode]}"
+
+_saved_main_geometry = APP_CONFIG.get(
+    "main_window_geometry"
 )
+
+if isinstance(
+    _saved_main_geometry,
+    dict
+):
+    try:
+        _main_width = int(
+            _saved_main_geometry.get(
+                "width",
+                MODE_WIDTHS[current_mode]
+            )
+        )
+        _main_height = int(
+            _saved_main_geometry.get(
+                "height",
+                MODE_HEIGHTS[current_mode]
+            )
+        )
+        _main_x = int(
+            _saved_main_geometry.get(
+                "x",
+                0
+            )
+        )
+        _main_y = int(
+            _saved_main_geometry.get(
+                "y",
+                0
+            )
+        )
+
+        root.geometry(
+            f"{_main_width}x{_main_height}"
+            f"{_main_x:+d}{_main_y:+d}"
+        )
+    except (TypeError, ValueError):
+        root.geometry(
+            f"{MODE_WIDTHS[current_mode]}x"
+            f"{MODE_HEIGHTS[current_mode]}"
+        )
+else:
+    root.geometry(
+        f"{MODE_WIDTHS[current_mode]}x"
+        f"{MODE_HEIGHTS[current_mode]}"
+    )
+
 root.resizable(True, True)
 
 # Permitimos reducir la ventana sin romper el modo compacto.
@@ -1881,7 +1928,7 @@ def open_settings(event=None):
         bd=0,
         highlightthickness=0,
     )
-    style_tab = tk.Frame(
+    skins_tab = tk.Frame(
         content_host,
         bg=BG_COLOR,
         bd=0,
@@ -1890,7 +1937,7 @@ def open_settings(event=None):
 
     for tab in (
         general_tab,
-        style_tab,
+        skins_tab,
     ):
         tab.place(
             x=0,
@@ -1905,7 +1952,7 @@ def open_settings(event=None):
         selected = (
             general_tab
             if name == "general"
-            else style_tab
+            else skins_tab
         )
 
         selected.tkraise()
@@ -1962,12 +2009,12 @@ def open_settings(event=None):
         padx=(0, 10),
     )
 
-    tab_buttons["style"] = tk.Button(
+    tab_buttons["skins"] = tk.Button(
         tabs_bar,
-        text=tr("style_tab"),
+        text=tr("skins_tab"),
         command=lambda: (
             _show_settings_tab(
-                "style"
+                "skins"
             )
         ),
         bg="#151515",
@@ -1983,8 +2030,93 @@ def open_settings(event=None):
         padx=32,
         pady=11,
     )
-    tab_buttons["style"].pack(
+    tab_buttons["skins"].pack(
         side="left",
+    )
+
+    # --------------------------------------------------------
+    # SKINS
+    # --------------------------------------------------------
+    # Los selectores quedan preparados para poblarse más adelante.
+    # Por ahora no exponen ninguna opción.
+    skins_tab.grid_columnconfigure(
+        0,
+        weight=0,
+        minsize=170,
+    )
+    skins_tab.grid_columnconfigure(
+        1,
+        weight=1,
+    )
+
+    skin_nomenclature_label = tk.Label(
+        skins_tab,
+        text=tr("skin_nomenclature"),
+        bg=BG_COLOR,
+        fg=fg,
+        font=normal_font,
+        anchor="w",
+    )
+    skin_nomenclature_label.grid(
+        row=0,
+        column=0,
+        sticky="w",
+        padx=(12, 16),
+        pady=(24, 12),
+    )
+
+    skin_nomenclature_var = tk.StringVar(
+        value=""
+    )
+
+    skin_nomenclature_combo = ttk.Combobox(
+        skins_tab,
+        textvariable=skin_nomenclature_var,
+        values=(),
+        state="readonly",
+        font=small_font,
+    )
+    skin_nomenclature_combo.grid(
+        row=0,
+        column=1,
+        sticky="ew",
+        padx=(0, 12),
+        pady=(24, 12),
+    )
+
+    skin_label = tk.Label(
+        skins_tab,
+        text=tr("skin_selector"),
+        bg=BG_COLOR,
+        fg=fg,
+        font=normal_font,
+        anchor="w",
+    )
+    skin_label.grid(
+        row=1,
+        column=0,
+        sticky="w",
+        padx=(12, 16),
+        pady=12,
+    )
+
+    skin_var = tk.StringVar(
+        value=""
+    )
+
+    skin_combo = ttk.Combobox(
+        skins_tab,
+        textvariable=skin_var,
+        values=(),
+        state="readonly",
+        font=small_font,
+    )
+    skin_combo.grid(
+        row=1,
+        column=1,
+        sticky="ew",
+        padx=(0, 12),
+        pady=12,
     )
 
     # --------------------------------------------------------
@@ -2732,6 +2864,11 @@ def open_settings(event=None):
             "global_hotkeys": proposed_global_hotkeys,
             "settings_window_size": (
                 _current_settings_window_size()
+            ),
+            "main_window_geometry": (
+                APP_CONFIG.get(
+                    "main_window_geometry"
+                )
             ),
             "keybinds": dict(proposed),
         }
@@ -4864,7 +5001,70 @@ def get_dan_from_diff(diff):
 # --- Boot ---
 
 
+def _current_main_window_geometry():
+    try:
+        root.update_idletasks()
+    except tk.TclError:
+        pass
+
+    try:
+        width = int(
+            root.winfo_width()
+        )
+        height = int(
+            root.winfo_height()
+        )
+        x = int(
+            root.winfo_x()
+        )
+        y = int(
+            root.winfo_y()
+        )
+    except tk.TclError:
+        width = MODE_WIDTHS[current_mode]
+        height = MODE_HEIGHTS[current_mode]
+        x = 0
+        y = 0
+
+    return {
+        "width": max(
+            350,
+            min(width, 7680)
+        ),
+        "height": max(
+            65,
+            min(height, 4320)
+        ),
+        "x": max(
+            -20000,
+            min(x, 20000)
+        ),
+        "y": max(
+            -20000,
+            min(y, 20000)
+        ),
+    }
+
+
 def _on_app_close():
+    APP_CONFIG[
+        "main_window_geometry"
+    ] = _current_main_window_geometry()
+
+    APP_CONFIG["layout"] = (
+        MODE_NAMES[current_mode]
+    )
+
+    try:
+        config_manager.save_config(
+            APP_CONFIG
+        )
+    except OSError as exc:
+        print(
+            "[Config] Could not save main window geometry:",
+            exc
+        )
+
     try:
         hotkey_manager.stop()
     except Exception:
