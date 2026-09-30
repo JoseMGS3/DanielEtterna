@@ -1432,13 +1432,28 @@ def _apply_mode():
     # No usamos MODE_WIDTHS/MODE_HEIGHTS aquí: esos valores quedan
     # únicamente como tamaños iniciales/default, no como tamaños
     # forzados al cambiar de layout.
+    #
+    # Sí respetamos el mínimo técnico de cada layout para evitar que,
+    # por ejemplo, Full intente dibujar gráfico + texto dentro de una
+    # altura de 65 px heredada de Compact.
+    min_height = {
+        MODE_COMPACT: COMPACT_HEIGHT,
+        MODE_STATISTICS: STATISTICS_HEIGHT,
+        MODE_FULL: BAR_HEIGHT + 80,
+    }[current_mode]
+
     root.minsize(
         350,
-        65
+        min_height
+    )
+
+    effective_height = max(
+        current_height,
+        min_height
     )
 
     root.geometry(
-        f"{current_width}x{current_height}"
+        f"{current_width}x{effective_height}"
         f"{current_x:+d}{current_y:+d}"
     )
 
