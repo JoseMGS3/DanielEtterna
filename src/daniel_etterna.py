@@ -109,6 +109,10 @@ WINDOW_SIZE_PRESETS = {
     },
 }
 
+NOMENCLATURE_OPTIONS = (
+    "standard",
+)
+
 BG_COLOR = "#000000"
 PREFIX_FILL = "#FFFFFF"
 DOT_RED = "#FF3B3B"
@@ -227,6 +231,23 @@ current_global_hotkeys = bool(
         False
     )
 )
+current_nomenclature = str(
+    APP_CONFIG.get(
+        "nomenclature",
+        "standard"
+    )
+).strip().lower()
+
+if current_nomenclature not in NOMENCLATURE_OPTIONS:
+    current_nomenclature = "standard"
+
+current_skin = str(
+    APP_CONFIG.get(
+        "skin",
+        ""
+    )
+).strip()
+
 _bound_key_sequences = {}
 _settings_window = None
 
@@ -945,6 +966,29 @@ def fade_items(text_item, bar_item, start_color, end_color, steps=14):
     _step(0)
 
 
+def _format_dan_label(
+    dan_label,
+    nomenclature=None,
+):
+    """
+    Devuelve únicamente el texto visible del Dan.
+
+    "standard" conserva exactamente la nomenclatura actual de Daniel:
+    Low/Mid/High + 1st-10th o Alpha-Theta.
+    """
+    selected = str(
+        nomenclature
+        if nomenclature is not None
+        else current_nomenclature
+    ).strip().lower()
+
+    if selected == "standard":
+        return dan_label
+
+    # Fallback seguro para futuras nomenclaturas todavía no implementadas.
+    return dan_label
+
+
 def update_dan_text(dan_label, dan_numeric):
     global text_items, current_bar_color
 
@@ -1013,7 +1057,9 @@ def update_dan_text(dan_label, dan_numeric):
                 current_language
             )
             if dan_label == "Invalid Beatmap"
-            else dan_label
+            else _format_dan_label(
+                dan_label
+            )
         )
 
     display_numeric = ""
@@ -2793,6 +2839,8 @@ def open_settings(event=None):
         global APP_CONFIG
         global current_keybinds
         global current_global_hotkeys
+        global current_nomenclature
+        global current_skin
         global current_language
         global _settings_window
 
@@ -2857,6 +2905,22 @@ def open_settings(event=None):
             global_hotkeys_var.get()
         )
 
+        nomenclature_display_to_id = {
+            i18n.t(
+                "nomenclature_standard",
+                proposed_language
+            ): "standard",
+        }
+
+        proposed_nomenclature = (
+            nomenclature_display_to_id.get(
+                skin_nomenclature_var.get(),
+                "standard"
+            )
+        )
+
+        proposed_skin = ""
+
         new_config = {
             "etterna_root": clean_path,
             "language": proposed_language,
@@ -2870,6 +2934,8 @@ def open_settings(event=None):
                     "main_window_geometry"
                 )
             ),
+            "nomenclature": proposed_nomenclature,
+            "skin": proposed_skin,
             "keybinds": dict(proposed),
         }
 
@@ -2897,6 +2963,12 @@ def open_settings(event=None):
         )
         current_global_hotkeys = (
             proposed_global_hotkeys
+        )
+        current_nomenclature = (
+            proposed_nomenclature
+        )
+        current_skin = (
+            proposed_skin
         )
 
         current_root_path = (
