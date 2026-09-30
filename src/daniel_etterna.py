@@ -2083,15 +2083,12 @@ def open_settings(event=None):
     # --------------------------------------------------------
     # SKINS
     # --------------------------------------------------------
-    # Los selectores quedan preparados para poblarse más adelante.
-    # Por ahora no exponen ninguna opción.
+    # Cada selector tiene debajo una tarjeta de vista previa.
+    # Las tarjetas funcionan como miniaturas vivas del resultado
+    # para que futuras nomenclaturas y skins puedan compararse
+    # visualmente antes de aplicarlas.
     skins_tab.grid_columnconfigure(
         0,
-        weight=0,
-        minsize=170,
-    )
-    skins_tab.grid_columnconfigure(
-        1,
         weight=1,
     )
 
@@ -2106,28 +2103,323 @@ def open_settings(event=None):
     skin_nomenclature_label.grid(
         row=0,
         column=0,
-        sticky="w",
-        padx=(12, 16),
-        pady=(24, 12),
+        sticky="ew",
+        padx=12,
+        pady=(22, 6),
+    )
+
+    standard_nomenclature_display = tr(
+        "nomenclature_standard"
     )
 
     skin_nomenclature_var = tk.StringVar(
-        value=""
+        value=standard_nomenclature_display
     )
 
     skin_nomenclature_combo = ttk.Combobox(
         skins_tab,
         textvariable=skin_nomenclature_var,
-        values=(),
+        values=(
+            standard_nomenclature_display,
+        ),
         state="readonly",
         font=small_font,
     )
     skin_nomenclature_combo.grid(
-        row=0,
-        column=1,
+        row=1,
+        column=0,
         sticky="ew",
-        padx=(0, 12),
-        pady=(24, 12),
+        padx=12,
+        pady=(0, 8),
+    )
+
+    nomenclature_preview_title = tk.Label(
+        skins_tab,
+        text=tr("preview"),
+        bg=BG_COLOR,
+        fg=muted,
+        font=small_font,
+        anchor="w",
+    )
+    nomenclature_preview_title.grid(
+        row=2,
+        column=0,
+        sticky="ew",
+        padx=12,
+        pady=(0, 5),
+    )
+
+    nomenclature_preview_card = tk.Frame(
+        skins_tab,
+        bg="#303030",
+        bd=0,
+        highlightthickness=1,
+        highlightbackground="#303030",
+    )
+    nomenclature_preview_card.grid(
+        row=3,
+        column=0,
+        sticky="nsew",
+        padx=12,
+        pady=(0, 20),
+    )
+
+    nomenclature_preview_canvas = tk.Canvas(
+        nomenclature_preview_card,
+        height=165,
+        bg="#050505",
+        bd=0,
+        highlightthickness=0,
+    )
+    nomenclature_preview_canvas.pack(
+        fill="both",
+        expand=True,
+        padx=1,
+        pady=1,
+    )
+
+    def _draw_standard_nomenclature_preview(event=None):
+        preview = nomenclature_preview_canvas
+        preview.delete("all")
+
+        width = max(
+            320,
+            preview.winfo_width()
+        )
+        height = max(
+            150,
+            preview.winfo_height()
+        )
+
+        scale = max(
+            0.78,
+            min(
+                1.35,
+                width / 600.0
+            )
+        )
+
+        title_size = max(
+            8,
+            int(round(10 * scale))
+        )
+        prefix_size = max(
+            10,
+            int(round(16 * scale))
+        )
+        dan_size = max(
+            15,
+            int(round(27 * scale))
+        )
+        msd_size = max(
+            9,
+            int(round(13 * scale))
+        )
+
+        # Fondo tipo captura del overlay actual.
+        preview.create_rectangle(
+            0,
+            0,
+            width,
+            height,
+            fill="#050505",
+            outline="",
+        )
+
+        accent = DAN_COLORS["Alpha"]
+        preview.create_rectangle(
+            0,
+            0,
+            max(4, int(5 * scale)),
+            height,
+            fill=accent,
+            outline="",
+        )
+
+        # Mini gráfico de strain para que la tarjeta se lea como una
+        # vista previa real de DanielEtterna y no solo como texto.
+        graph_top = int(14 * scale)
+        graph_bottom = int(75 * scale)
+        graph_left = int(18 * scale)
+        graph_right = max(
+            graph_left + 120,
+            width - int(18 * scale)
+        )
+
+        points = [
+            (0.00, 0.82),
+            (0.10, 0.60),
+            (0.18, 0.72),
+            (0.27, 0.38),
+            (0.36, 0.48),
+            (0.45, 0.22),
+            (0.55, 0.55),
+            (0.64, 0.30),
+            (0.73, 0.44),
+            (0.84, 0.18),
+            (0.93, 0.40),
+            (1.00, 0.28),
+        ]
+
+        graph_points = []
+
+        for px, py in points:
+            x = (
+                graph_left
+                + px
+                * (
+                    graph_right
+                    - graph_left
+                )
+            )
+            y = (
+                graph_top
+                + py
+                * (
+                    graph_bottom
+                    - graph_top
+                )
+            )
+            graph_points.extend(
+                (
+                    x,
+                    y,
+                )
+            )
+
+        preview.create_line(
+            *graph_points,
+            fill="#353535",
+            width=max(
+                1,
+                int(2 * scale)
+            ),
+            smooth=True,
+        )
+
+        split_x = (
+            graph_left
+            + (
+                graph_right
+                - graph_left
+            ) * 0.58
+        )
+
+        preview.create_line(
+            *graph_points[:14],
+            fill=accent,
+            width=max(
+                2,
+                int(3 * scale)
+            ),
+            smooth=True,
+        )
+
+        preview.create_line(
+            split_x,
+            graph_top,
+            split_x,
+            graph_bottom,
+            fill="#242424",
+            width=1,
+        )
+
+        preview.create_text(
+            width - int(15 * scale),
+            int(14 * scale),
+            text=standard_nomenclature_display,
+            fill="#777777",
+            font=(
+                "Segoe UI",
+                title_size
+            ),
+            anchor="ne",
+        )
+
+        text_y = int(105 * scale)
+        prefix_x = int(18 * scale)
+
+        prefix_item = preview.create_text(
+            prefix_x,
+            text_y,
+            text=i18n.t(
+                "estimated_dan",
+                current_language
+            ),
+            fill="#FFFFFF",
+            font=(
+                "Segoe UI Semibold",
+                prefix_size
+            ),
+            anchor="w",
+        )
+
+        prefix_bbox = preview.bbox(
+            prefix_item
+        )
+        label_x = (
+            prefix_bbox[2]
+            + int(8 * scale)
+            if prefix_bbox
+            else prefix_x
+        )
+
+        dan_item = preview.create_text(
+            label_x,
+            text_y - int(2 * scale),
+            text=_format_dan_label(
+                "High-Alpha",
+                "standard"
+            ),
+            fill=accent,
+            font=(
+                "Segoe UI Bold",
+                dan_size
+            ),
+            anchor="w",
+        )
+
+        dan_bbox = preview.bbox(
+            dan_item
+        )
+        numeric_x = (
+            dan_bbox[2]
+            + int(9 * scale)
+            if dan_bbox
+            else label_x
+        )
+
+        preview.create_text(
+            numeric_x,
+            text_y,
+            text="(11.84)",
+            fill="#FFFFFF",
+            font=(
+                "Segoe UI Semibold",
+                prefix_size
+            ),
+            anchor="w",
+        )
+
+        preview.create_text(
+            prefix_x,
+            min(
+                height - int(16 * scale),
+                text_y + int(34 * scale)
+            ),
+            text="Stream, Technical  20.50MSD",
+            fill="#D8D8D8",
+            font=(
+                "Segoe UI Semibold",
+                msd_size
+            ),
+            anchor="w",
+        )
+
+    nomenclature_preview_canvas.bind(
+        "<Configure>",
+        _draw_standard_nomenclature_preview,
+        add="+",
     )
 
     skin_label = tk.Label(
@@ -2139,11 +2431,11 @@ def open_settings(event=None):
         anchor="w",
     )
     skin_label.grid(
-        row=1,
+        row=4,
         column=0,
-        sticky="w",
-        padx=(12, 16),
-        pady=12,
+        sticky="ew",
+        padx=12,
+        pady=(0, 6),
     )
 
     skin_var = tk.StringVar(
@@ -2158,11 +2450,129 @@ def open_settings(event=None):
         font=small_font,
     )
     skin_combo.grid(
-        row=1,
-        column=1,
+        row=5,
+        column=0,
         sticky="ew",
-        padx=(0, 12),
-        pady=12,
+        padx=12,
+        pady=(0, 8),
+    )
+
+    skin_preview_title = tk.Label(
+        skins_tab,
+        text=tr("preview"),
+        bg=BG_COLOR,
+        fg=muted,
+        font=small_font,
+        anchor="w",
+    )
+    skin_preview_title.grid(
+        row=6,
+        column=0,
+        sticky="ew",
+        padx=12,
+        pady=(0, 5),
+    )
+
+    skin_preview_card = tk.Frame(
+        skins_tab,
+        bg="#303030",
+        bd=0,
+        highlightthickness=1,
+        highlightbackground="#303030",
+    )
+    skin_preview_card.grid(
+        row=7,
+        column=0,
+        sticky="nsew",
+        padx=12,
+        pady=(0, 12),
+    )
+
+    skin_preview_canvas = tk.Canvas(
+        skin_preview_card,
+        height=145,
+        bg="#090909",
+        bd=0,
+        highlightthickness=0,
+    )
+    skin_preview_canvas.pack(
+        fill="both",
+        expand=True,
+        padx=1,
+        pady=1,
+    )
+
+    def _draw_empty_skin_preview(event=None):
+        preview = skin_preview_canvas
+        preview.delete("all")
+
+        width = max(
+            320,
+            preview.winfo_width()
+        )
+        height = max(
+            120,
+            preview.winfo_height()
+        )
+
+        preview.create_rectangle(
+            0,
+            0,
+            width,
+            height,
+            fill="#090909",
+            outline="",
+        )
+
+        # Silueta de una futura miniatura de skin.
+        inset = max(
+            18,
+            int(width * 0.04)
+        )
+
+        preview.create_rectangle(
+            inset,
+            18,
+            width - inset,
+            height - 18,
+            fill="#101010",
+            outline="#252525",
+            width=1,
+        )
+
+        preview.create_line(
+            inset + 18,
+            height * 0.45,
+            width - inset - 18,
+            height * 0.45,
+            fill="#1F1F1F",
+            width=2,
+        )
+
+        preview.create_text(
+            width / 2,
+            height / 2,
+            text=tr(
+                "no_skins_available"
+            ),
+            fill="#666666",
+            font=small_font,
+            anchor="center",
+        )
+
+    skin_preview_canvas.bind(
+        "<Configure>",
+        _draw_empty_skin_preview,
+        add="+",
+    )
+
+    win.after(
+        0,
+        _draw_standard_nomenclature_preview
+    )
+    win.after(
+        0,
+        _draw_empty_skin_preview
     )
 
     # --------------------------------------------------------
