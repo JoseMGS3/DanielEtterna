@@ -1360,11 +1360,43 @@ def _apply_window_preset(preset_name):
         _resize_contents
     )
 
+    # El preset elegido pasa a ser el tamaño actual persistente.
+    root.after(
+        140,
+        _save_layout_preference
+    )
+
 
 def _save_layout_preference():
     APP_CONFIG["layout"] = (
         MODE_NAMES[current_mode]
     )
+
+    # Guardar también la geometría efectiva actual. Así un cambio
+    # de layout no pisa el tamaño/posición elegidos por el usuario.
+    try:
+        root.update_idletasks()
+
+        APP_CONFIG[
+            "main_window_geometry"
+        ] = {
+            "width": max(
+                350,
+                int(root.winfo_width())
+            ),
+            "height": max(
+                65,
+                int(root.winfo_height())
+            ),
+            "x": int(
+                root.winfo_x()
+            ),
+            "y": int(
+                root.winfo_y()
+            ),
+        }
+    except tk.TclError:
+        pass
 
     try:
         config_manager.save_config(
@@ -1378,22 +1410,37 @@ def _save_layout_preference():
 
 
 def _apply_mode():
-    h = MODE_HEIGHTS[current_mode]
-    w = MODE_WIDTHS[current_mode]
-
-    min_height = {
-        MODE_COMPACT: COMPACT_HEIGHT,
-        MODE_STATISTICS: STATISTICS_HEIGHT,
-        MODE_FULL: BAR_HEIGHT + 80,
-    }[current_mode]
-
-    root.minsize(
+    # IMPORTANTE:
+    # cambiar de layout ya no cambia el tamaño de la ventana.
+    # Se conserva exactamente la geometría que haya elegido
+    # el usuario y solo se modifica qué contenido se muestra.
+    current_width = max(
         350,
-        min_height
+        int(root.winfo_width())
+    )
+    current_height = max(
+        65,
+        int(root.winfo_height())
+    )
+    current_x = int(
+        root.winfo_x()
+    )
+    current_y = int(
+        root.winfo_y()
     )
 
-    root.geometry(f"{w}x{h}")
-    canvas.configure(width=w, height=h)
+    # No usamos MODE_WIDTHS/MODE_HEIGHTS aquí: esos valores quedan
+    # únicamente como tamaños iniciales/default, no como tamaños
+    # forzados al cambiar de layout.
+    root.minsize(
+        350,
+        65
+    )
+
+    root.geometry(
+        f"{current_width}x{current_height}"
+        f"{current_x:+d}{current_y:+d}"
+    )
 
     _save_layout_preference()
 
@@ -1414,6 +1461,13 @@ def _apply_mode():
     root.after(
         100,
         _resize_contents
+    )
+
+    # Persistir una segunda vez tras el ciclo de geometría de Tk
+    # por si el gestor de ventanas ajustó uno o dos píxeles.
+    root.after(
+        140,
+        _save_layout_preference
     )
 
 
