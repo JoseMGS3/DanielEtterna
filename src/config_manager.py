@@ -7,7 +7,7 @@ import i18n
 
 
 DEFAULT_CONFIG = {
-    "config_version": 6,
+    "config_version": 7,
     "etterna_root": "",
     "language": i18n.DEFAULT_LANGUAGE,
     "layout": "full",
@@ -16,6 +16,7 @@ DEFAULT_CONFIG = {
         "width": 680,
         "height": 720,
     },
+    "main_window_geometry": None,
     "keybinds": {
         "toggle_topmost": "F1",
         "cycle_mode": "Tab",
@@ -69,6 +70,63 @@ def _merge_defaults(data):
     global_hotkeys = data.get("global_hotkeys")
     if isinstance(global_hotkeys, bool):
         result["global_hotkeys"] = global_hotkeys
+
+    main_window_geometry = data.get(
+        "main_window_geometry"
+    )
+    if isinstance(
+        main_window_geometry,
+        dict
+    ):
+        try:
+            main_width = int(
+                main_window_geometry.get(
+                    "width",
+                    650
+                )
+            )
+            main_height = int(
+                main_window_geometry.get(
+                    "height",
+                    370
+                )
+            )
+            main_x = int(
+                main_window_geometry.get(
+                    "x",
+                    0
+                )
+            )
+            main_y = int(
+                main_window_geometry.get(
+                    "y",
+                    0
+                )
+            )
+        except (TypeError, ValueError):
+            main_width = 650
+            main_height = 370
+            main_x = 0
+            main_y = 0
+
+        result["main_window_geometry"] = {
+            "width": max(
+                350,
+                min(main_width, 7680)
+            ),
+            "height": max(
+                65,
+                min(main_height, 4320)
+            ),
+            "x": max(
+                -20000,
+                min(main_x, 20000)
+            ),
+            "y": max(
+                -20000,
+                min(main_y, 20000)
+            ),
+        }
 
     settings_window_size = data.get(
         "settings_window_size"
