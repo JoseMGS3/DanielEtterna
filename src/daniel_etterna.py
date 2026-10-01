@@ -63,17 +63,35 @@ MODE_STATISTICS = 1
 MODE_FULL = 2
 MODE_NAMES = ["compact", "statistics", "full"]
 
-GRAPH_HEIGHT = 250
+# Tamaños base de cada layout.
+# Se mantienen centralizados para que los cambios de interfaz no
+# requieran modificar valores dispersos por el código.
+LAYOUT_BASE_SIZES = {
+    "compact": {
+        "width": 550,
+        "height": 70,
+    },
+    "statistics": {
+        "width": 650,
+        "height": 130,
+    },
+    "full": {
+        "width": 700,
+        "height": 420,
+    },
+}
+
+GRAPH_HEIGHT = 280
 BAR_HEIGHT = 120
-WINDOW_WIDTH = 650
+WINDOW_WIDTH = LAYOUT_BASE_SIZES["full"]["width"]
 
-COMPACT_HEIGHT = 65
-STATISTICS_HEIGHT = 120
-FULL_HEIGHT = GRAPH_HEIGHT + BAR_HEIGHT
+COMPACT_HEIGHT = LAYOUT_BASE_SIZES["compact"]["height"]
+STATISTICS_HEIGHT = LAYOUT_BASE_SIZES["statistics"]["height"]
+FULL_HEIGHT = LAYOUT_BASE_SIZES["full"]["height"]
 
-COMPACT_WIDTH = 550
-STATISTICS_WIDTH = 650
-FULL_WIDTH = 650
+COMPACT_WIDTH = LAYOUT_BASE_SIZES["compact"]["width"]
+STATISTICS_WIDTH = LAYOUT_BASE_SIZES["statistics"]["width"]
+FULL_WIDTH = LAYOUT_BASE_SIZES["full"]["width"]
 
 MODE_HEIGHTS = {
     MODE_COMPACT: COMPACT_HEIGHT,
@@ -98,9 +116,9 @@ WINDOW_SIZE_PRESETS = {
         MODE_FULL: (500, 300),
     },
     "medium": {
-        MODE_COMPACT: (550, 65),
-        MODE_STATISTICS: (650, 120),
-        MODE_FULL: (650, 370),
+        MODE_COMPACT: (550, 70),
+        MODE_STATISTICS: (650, 130),
+        MODE_FULL: (700, 420),
     },
     "large": {
         MODE_COMPACT: (750, 80),
