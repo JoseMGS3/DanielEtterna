@@ -63,17 +63,35 @@ MODE_STATISTICS = 1
 MODE_FULL = 2
 MODE_NAMES = ["compact", "statistics", "full"]
 
-GRAPH_HEIGHT = 250
+# Tamaños base de cada layout.
+# Se mantienen centralizados para que los cambios de interfaz no
+# requieran modificar valores dispersos por el código.
+LAYOUT_BASE_SIZES = {
+    "compact": {
+        "width": 550,
+        "height": 70,
+    },
+    "statistics": {
+        "width": 650,
+        "height": 130,
+    },
+    "full": {
+        "width": 700,
+        "height": 420,
+    },
+}
+
+GRAPH_HEIGHT = 280
 BAR_HEIGHT = 120
-WINDOW_WIDTH = 650
+WINDOW_WIDTH = LAYOUT_BASE_SIZES["full"]["width"]
 
-COMPACT_HEIGHT = 65
-STATISTICS_HEIGHT = 120
-FULL_HEIGHT = GRAPH_HEIGHT + BAR_HEIGHT
+COMPACT_HEIGHT = LAYOUT_BASE_SIZES["compact"]["height"]
+STATISTICS_HEIGHT = LAYOUT_BASE_SIZES["statistics"]["height"]
+FULL_HEIGHT = LAYOUT_BASE_SIZES["full"]["height"]
 
-COMPACT_WIDTH = 550
-STATISTICS_WIDTH = 650
-FULL_WIDTH = 650
+COMPACT_WIDTH = LAYOUT_BASE_SIZES["compact"]["width"]
+STATISTICS_WIDTH = LAYOUT_BASE_SIZES["statistics"]["width"]
+FULL_WIDTH = LAYOUT_BASE_SIZES["full"]["width"]
 
 MODE_HEIGHTS = {
     MODE_COMPACT: COMPACT_HEIGHT,
@@ -98,9 +116,9 @@ WINDOW_SIZE_PRESETS = {
         MODE_FULL: (500, 300),
     },
     "medium": {
-        MODE_COMPACT: (550, 65),
-        MODE_STATISTICS: (650, 120),
-        MODE_FULL: (650, 370),
+        MODE_COMPACT: (550, 70),
+        MODE_STATISTICS: (650, 130),
+        MODE_FULL: (700, 420),
     },
     "large": {
         MODE_COMPACT: (750, 80),
@@ -108,6 +126,10 @@ WINDOW_SIZE_PRESETS = {
         MODE_FULL: (850, 500),
     },
 }
+
+NOMENCLATURE_OPTIONS = (
+    "standard",
+)
 
 BG_COLOR = "#000000"
 PREFIX_FILL = "#FFFFFF"
@@ -227,6 +249,23 @@ current_global_hotkeys = bool(
         False
     )
 )
+current_nomenclature = str(
+    APP_CONFIG.get(
+        "nomenclature",
+        "standard"
+    )
+).strip().lower()
+
+if current_nomenclature not in NOMENCLATURE_OPTIONS:
+    current_nomenclature = "standard"
+
+current_skin = str(
+    APP_CONFIG.get(
+        "skin",
+        ""
+    )
+).strip()
+
 _bound_key_sequences = {}
 _settings_window = None
 
@@ -362,9 +401,56 @@ if os.name == "nt" and hasattr(ctypes, "windll"):
 root = tk.Tk()
 root.tk.call("tk", "scaling", 1.0)
 root.title(f"DanielEtterna {APP_VERSION}")
-root.geometry(
-    f"{MODE_WIDTHS[current_mode]}x{MODE_HEIGHTS[current_mode]}"
+
+_saved_main_geometry = APP_CONFIG.get(
+    "main_window_geometry"
 )
+
+if isinstance(
+    _saved_main_geometry,
+    dict
+):
+    try:
+        _main_width = int(
+            _saved_main_geometry.get(
+                "width",
+                MODE_WIDTHS[current_mode]
+            )
+        )
+        _main_height = int(
+            _saved_main_geometry.get(
+                "height",
+                MODE_HEIGHTS[current_mode]
+            )
+        )
+        _main_x = int(
+            _saved_main_geometry.get(
+                "x",
+                0
+            )
+        )
+        _main_y = int(
+            _saved_main_geometry.get(
+                "y",
+                0
+            )
+        )
+
+        root.geometry(
+            f"{_main_width}x{_main_height}"
+            f"{_main_x:+d}{_main_y:+d}"
+        )
+    except (TypeError, ValueError):
+        root.geometry(
+            f"{MODE_WIDTHS[current_mode]}x"
+            f"{MODE_HEIGHTS[current_mode]}"
+        )
+else:
+    root.geometry(
+        f"{MODE_WIDTHS[current_mode]}x"
+        f"{MODE_HEIGHTS[current_mode]}"
+    )
+
 root.resizable(True, True)
 
 # Permitimos reducir la ventana sin romper el modo compacto.
@@ -898,6 +984,29 @@ def fade_items(text_item, bar_item, start_color, end_color, steps=14):
     _step(0)
 
 
+def _format_dan_label(
+    dan_label,
+    nomenclature=None,
+):
+    """
+    Devuelve únicamente el texto visible del Dan.
+
+    "standard" conserva exactamente la nomenclatura actual de Daniel:
+    Low/Mid/High + 1st-10th o Alpha-Theta.
+    """
+    selected = str(
+        nomenclature
+        if nomenclature is not None
+        else current_nomenclature
+    ).strip().lower()
+
+    if selected == "standard":
+        return dan_label
+
+    # Fallback seguro para futuras nomenclaturas todavía no implementadas.
+    return dan_label
+
+
 def update_dan_text(dan_label, dan_numeric):
     global text_items, current_bar_color
 
@@ -966,7 +1075,9 @@ def update_dan_text(dan_label, dan_numeric):
                 current_language
             )
             if dan_label == "Invalid Beatmap"
-            else dan_label
+            else _format_dan_label(
+                dan_label
+            )
         )
 
     display_numeric = ""
@@ -1267,11 +1378,43 @@ def _apply_window_preset(preset_name):
         _resize_contents
     )
 
+    # El preset elegido pasa a ser el tamaño actual persistente.
+    root.after(
+        140,
+        _save_layout_preference
+    )
+
 
 def _save_layout_preference():
     APP_CONFIG["layout"] = (
         MODE_NAMES[current_mode]
     )
+
+    # Guardar también la geometría efectiva actual. Así un cambio
+    # de layout no pisa el tamaño/posición elegidos por el usuario.
+    try:
+        root.update_idletasks()
+
+        APP_CONFIG[
+            "main_window_geometry"
+        ] = {
+            "width": max(
+                350,
+                int(root.winfo_width())
+            ),
+            "height": max(
+                65,
+                int(root.winfo_height())
+            ),
+            "x": int(
+                root.winfo_x()
+            ),
+            "y": int(
+                root.winfo_y()
+            ),
+        }
+    except tk.TclError:
+        pass
 
     try:
         config_manager.save_config(
@@ -1285,9 +1428,32 @@ def _save_layout_preference():
 
 
 def _apply_mode():
-    h = MODE_HEIGHTS[current_mode]
-    w = MODE_WIDTHS[current_mode]
+    # IMPORTANTE:
+    # cambiar de layout ya no cambia el tamaño de la ventana.
+    # Se conserva exactamente la geometría que haya elegido
+    # el usuario y solo se modifica qué contenido se muestra.
+    current_width = max(
+        350,
+        int(root.winfo_width())
+    )
+    current_height = max(
+        65,
+        int(root.winfo_height())
+    )
+    current_x = int(
+        root.winfo_x()
+    )
+    current_y = int(
+        root.winfo_y()
+    )
 
+    # No usamos MODE_WIDTHS/MODE_HEIGHTS aquí: esos valores quedan
+    # únicamente como tamaños iniciales/default, no como tamaños
+    # forzados al cambiar de layout.
+    #
+    # Sí respetamos el mínimo técnico de cada layout para evitar que,
+    # por ejemplo, Full intente dibujar gráfico + texto dentro de una
+    # altura de 65 px heredada de Compact.
     min_height = {
         MODE_COMPACT: COMPACT_HEIGHT,
         MODE_STATISTICS: STATISTICS_HEIGHT,
@@ -1299,8 +1465,15 @@ def _apply_mode():
         min_height
     )
 
-    root.geometry(f"{w}x{h}")
-    canvas.configure(width=w, height=h)
+    effective_height = max(
+        current_height,
+        min_height
+    )
+
+    root.geometry(
+        f"{current_width}x{effective_height}"
+        f"{current_x:+d}{current_y:+d}"
+    )
 
     _save_layout_preference()
 
@@ -1321,6 +1494,13 @@ def _apply_mode():
     root.after(
         100,
         _resize_contents
+    )
+
+    # Persistir una segunda vez tras el ciclo de geometría de Tk
+    # por si el gestor de ventanas ajustó uno o dos píxeles.
+    root.after(
+        140,
+        _save_layout_preference
     )
 
 
@@ -1881,7 +2061,7 @@ def open_settings(event=None):
         bd=0,
         highlightthickness=0,
     )
-    style_tab = tk.Frame(
+    skins_tab = tk.Frame(
         content_host,
         bg=BG_COLOR,
         bd=0,
@@ -1890,7 +2070,7 @@ def open_settings(event=None):
 
     for tab in (
         general_tab,
-        style_tab,
+        skins_tab,
     ):
         tab.place(
             x=0,
@@ -1905,7 +2085,7 @@ def open_settings(event=None):
         selected = (
             general_tab
             if name == "general"
-            else style_tab
+            else skins_tab
         )
 
         selected.tkraise()
@@ -1962,12 +2142,12 @@ def open_settings(event=None):
         padx=(0, 10),
     )
 
-    tab_buttons["style"] = tk.Button(
+    tab_buttons["skins"] = tk.Button(
         tabs_bar,
-        text=tr("style_tab"),
+        text=tr("skins_tab"),
         command=lambda: (
             _show_settings_tab(
-                "style"
+                "skins"
             )
         ),
         bg="#151515",
@@ -1983,8 +2163,503 @@ def open_settings(event=None):
         padx=32,
         pady=11,
     )
-    tab_buttons["style"].pack(
+    tab_buttons["skins"].pack(
         side="left",
+    )
+
+    # --------------------------------------------------------
+    # SKINS
+    # --------------------------------------------------------
+    # Cada selector tiene debajo una tarjeta de vista previa.
+    # Las tarjetas funcionan como miniaturas vivas del resultado
+    # para que futuras nomenclaturas y skins puedan compararse
+    # visualmente antes de aplicarlas.
+    skins_tab.grid_columnconfigure(
+        0,
+        weight=1,
+    )
+
+    skin_nomenclature_label = tk.Label(
+        skins_tab,
+        text=tr("skin_nomenclature"),
+        bg=BG_COLOR,
+        fg=fg,
+        font=normal_font,
+        anchor="w",
+    )
+    skin_nomenclature_label.grid(
+        row=0,
+        column=0,
+        sticky="ew",
+        padx=12,
+        pady=(22, 6),
+    )
+
+    standard_nomenclature_display = tr(
+        "nomenclature_standard"
+    )
+
+    skin_nomenclature_var = tk.StringVar(
+        value=standard_nomenclature_display
+    )
+
+    skin_nomenclature_combo = ttk.Combobox(
+        skins_tab,
+        textvariable=skin_nomenclature_var,
+        values=(
+            standard_nomenclature_display,
+        ),
+        state="readonly",
+        font=small_font,
+    )
+    skin_nomenclature_combo.grid(
+        row=1,
+        column=0,
+        sticky="ew",
+        padx=12,
+        pady=(0, 8),
+    )
+
+    nomenclature_preview_title = tk.Label(
+        skins_tab,
+        text=tr("preview"),
+        bg=BG_COLOR,
+        fg=muted,
+        font=small_font,
+        anchor="w",
+    )
+    nomenclature_preview_title.grid(
+        row=2,
+        column=0,
+        sticky="ew",
+        padx=12,
+        pady=(0, 5),
+    )
+
+    nomenclature_preview_card = tk.Frame(
+        skins_tab,
+        bg="#303030",
+        bd=0,
+        highlightthickness=1,
+        highlightbackground="#303030",
+    )
+    nomenclature_preview_card.grid(
+        row=3,
+        column=0,
+        sticky="nsew",
+        padx=12,
+        pady=(0, 20),
+    )
+
+    nomenclature_preview_canvas = tk.Canvas(
+        nomenclature_preview_card,
+        height=165,
+        bg="#050505",
+        bd=0,
+        highlightthickness=0,
+    )
+    nomenclature_preview_canvas.pack(
+        fill="both",
+        expand=True,
+        padx=1,
+        pady=1,
+    )
+
+    def _draw_standard_nomenclature_preview(event=None):
+        preview = nomenclature_preview_canvas
+        preview.delete("all")
+
+        width = max(
+            320,
+            preview.winfo_width()
+        )
+        height = max(
+            150,
+            preview.winfo_height()
+        )
+
+        scale = max(
+            0.78,
+            min(
+                1.35,
+                width / 600.0
+            )
+        )
+
+        title_size = max(
+            8,
+            int(round(10 * scale))
+        )
+        prefix_size = max(
+            10,
+            int(round(16 * scale))
+        )
+        dan_size = max(
+            15,
+            int(round(27 * scale))
+        )
+        msd_size = max(
+            9,
+            int(round(13 * scale))
+        )
+
+        # Fondo tipo captura del overlay actual.
+        preview.create_rectangle(
+            0,
+            0,
+            width,
+            height,
+            fill="#050505",
+            outline="",
+        )
+
+        accent = DAN_COLORS["Alpha"]
+        preview.create_rectangle(
+            0,
+            0,
+            max(4, int(5 * scale)),
+            height,
+            fill=accent,
+            outline="",
+        )
+
+        # Mini gráfico de strain para que la tarjeta se lea como una
+        # vista previa real de DanielEtterna y no solo como texto.
+        graph_top = int(14 * scale)
+        graph_bottom = int(75 * scale)
+        graph_left = int(18 * scale)
+        graph_right = max(
+            graph_left + 120,
+            width - int(18 * scale)
+        )
+
+        points = [
+            (0.00, 0.82),
+            (0.10, 0.60),
+            (0.18, 0.72),
+            (0.27, 0.38),
+            (0.36, 0.48),
+            (0.45, 0.22),
+            (0.55, 0.55),
+            (0.64, 0.30),
+            (0.73, 0.44),
+            (0.84, 0.18),
+            (0.93, 0.40),
+            (1.00, 0.28),
+        ]
+
+        graph_points = []
+
+        for px, py in points:
+            x = (
+                graph_left
+                + px
+                * (
+                    graph_right
+                    - graph_left
+                )
+            )
+            y = (
+                graph_top
+                + py
+                * (
+                    graph_bottom
+                    - graph_top
+                )
+            )
+            graph_points.extend(
+                (
+                    x,
+                    y,
+                )
+            )
+
+        preview.create_line(
+            *graph_points,
+            fill="#353535",
+            width=max(
+                1,
+                int(2 * scale)
+            ),
+            smooth=True,
+        )
+
+        split_x = (
+            graph_left
+            + (
+                graph_right
+                - graph_left
+            ) * 0.58
+        )
+
+        preview.create_line(
+            *graph_points[:14],
+            fill=accent,
+            width=max(
+                2,
+                int(3 * scale)
+            ),
+            smooth=True,
+        )
+
+        preview.create_line(
+            split_x,
+            graph_top,
+            split_x,
+            graph_bottom,
+            fill="#242424",
+            width=1,
+        )
+
+        preview.create_text(
+            width - int(15 * scale),
+            int(14 * scale),
+            text=standard_nomenclature_display,
+            fill="#777777",
+            font=(
+                "Segoe UI",
+                title_size
+            ),
+            anchor="ne",
+        )
+
+        text_y = int(105 * scale)
+        prefix_x = int(18 * scale)
+
+        prefix_item = preview.create_text(
+            prefix_x,
+            text_y,
+            text=i18n.t(
+                "estimated_dan",
+                current_language
+            ),
+            fill="#FFFFFF",
+            font=(
+                "Segoe UI Semibold",
+                prefix_size
+            ),
+            anchor="w",
+        )
+
+        prefix_bbox = preview.bbox(
+            prefix_item
+        )
+        label_x = (
+            prefix_bbox[2]
+            + int(8 * scale)
+            if prefix_bbox
+            else prefix_x
+        )
+
+        dan_item = preview.create_text(
+            label_x,
+            text_y - int(2 * scale),
+            text=_format_dan_label(
+                "High-Alpha",
+                "standard"
+            ),
+            fill=accent,
+            font=(
+                "Segoe UI Bold",
+                dan_size
+            ),
+            anchor="w",
+        )
+
+        dan_bbox = preview.bbox(
+            dan_item
+        )
+        numeric_x = (
+            dan_bbox[2]
+            + int(9 * scale)
+            if dan_bbox
+            else label_x
+        )
+
+        preview.create_text(
+            numeric_x,
+            text_y,
+            text="(11.84)",
+            fill="#FFFFFF",
+            font=(
+                "Segoe UI Semibold",
+                prefix_size
+            ),
+            anchor="w",
+        )
+
+        preview.create_text(
+            prefix_x,
+            min(
+                height - int(16 * scale),
+                text_y + int(34 * scale)
+            ),
+            text="Stream, Technical  20.50MSD",
+            fill="#D8D8D8",
+            font=(
+                "Segoe UI Semibold",
+                msd_size
+            ),
+            anchor="w",
+        )
+
+    nomenclature_preview_canvas.bind(
+        "<Configure>",
+        _draw_standard_nomenclature_preview,
+        add="+",
+    )
+
+    skin_label = tk.Label(
+        skins_tab,
+        text=tr("skin_selector"),
+        bg=BG_COLOR,
+        fg=fg,
+        font=normal_font,
+        anchor="w",
+    )
+    skin_label.grid(
+        row=4,
+        column=0,
+        sticky="ew",
+        padx=12,
+        pady=(0, 6),
+    )
+
+    skin_var = tk.StringVar(
+        value=""
+    )
+
+    skin_combo = ttk.Combobox(
+        skins_tab,
+        textvariable=skin_var,
+        values=(),
+        state="readonly",
+        font=small_font,
+    )
+    skin_combo.grid(
+        row=5,
+        column=0,
+        sticky="ew",
+        padx=12,
+        pady=(0, 8),
+    )
+
+    skin_preview_title = tk.Label(
+        skins_tab,
+        text=tr("preview"),
+        bg=BG_COLOR,
+        fg=muted,
+        font=small_font,
+        anchor="w",
+    )
+    skin_preview_title.grid(
+        row=6,
+        column=0,
+        sticky="ew",
+        padx=12,
+        pady=(0, 5),
+    )
+
+    skin_preview_card = tk.Frame(
+        skins_tab,
+        bg="#303030",
+        bd=0,
+        highlightthickness=1,
+        highlightbackground="#303030",
+    )
+    skin_preview_card.grid(
+        row=7,
+        column=0,
+        sticky="nsew",
+        padx=12,
+        pady=(0, 12),
+    )
+
+    skin_preview_canvas = tk.Canvas(
+        skin_preview_card,
+        height=145,
+        bg="#090909",
+        bd=0,
+        highlightthickness=0,
+    )
+    skin_preview_canvas.pack(
+        fill="both",
+        expand=True,
+        padx=1,
+        pady=1,
+    )
+
+    def _draw_empty_skin_preview(event=None):
+        preview = skin_preview_canvas
+        preview.delete("all")
+
+        width = max(
+            320,
+            preview.winfo_width()
+        )
+        height = max(
+            120,
+            preview.winfo_height()
+        )
+
+        preview.create_rectangle(
+            0,
+            0,
+            width,
+            height,
+            fill="#090909",
+            outline="",
+        )
+
+        # Silueta de una futura miniatura de skin.
+        inset = max(
+            18,
+            int(width * 0.04)
+        )
+
+        preview.create_rectangle(
+            inset,
+            18,
+            width - inset,
+            height - 18,
+            fill="#101010",
+            outline="#252525",
+            width=1,
+        )
+
+        preview.create_line(
+            inset + 18,
+            height * 0.45,
+            width - inset - 18,
+            height * 0.45,
+            fill="#1F1F1F",
+            width=2,
+        )
+
+        preview.create_text(
+            width / 2,
+            height / 2,
+            text=tr(
+                "no_skins_available"
+            ),
+            fill="#666666",
+            font=small_font,
+            anchor="center",
+        )
+
+    skin_preview_canvas.bind(
+        "<Configure>",
+        _draw_empty_skin_preview,
+        add="+",
+    )
+
+    win.after(
+        0,
+        _draw_standard_nomenclature_preview
+    )
+    win.after(
+        0,
+        _draw_empty_skin_preview
     )
 
     # --------------------------------------------------------
@@ -2661,6 +3336,8 @@ def open_settings(event=None):
         global APP_CONFIG
         global current_keybinds
         global current_global_hotkeys
+        global current_nomenclature
+        global current_skin
         global current_language
         global _settings_window
 
@@ -2725,6 +3402,22 @@ def open_settings(event=None):
             global_hotkeys_var.get()
         )
 
+        nomenclature_display_to_id = {
+            i18n.t(
+                "nomenclature_standard",
+                proposed_language
+            ): "standard",
+        }
+
+        proposed_nomenclature = (
+            nomenclature_display_to_id.get(
+                skin_nomenclature_var.get(),
+                "standard"
+            )
+        )
+
+        proposed_skin = ""
+
         new_config = {
             "etterna_root": clean_path,
             "language": proposed_language,
@@ -2733,6 +3426,13 @@ def open_settings(event=None):
             "settings_window_size": (
                 _current_settings_window_size()
             ),
+            "main_window_geometry": (
+                APP_CONFIG.get(
+                    "main_window_geometry"
+                )
+            ),
+            "nomenclature": proposed_nomenclature,
+            "skin": proposed_skin,
             "keybinds": dict(proposed),
         }
 
@@ -2760,6 +3460,12 @@ def open_settings(event=None):
         )
         current_global_hotkeys = (
             proposed_global_hotkeys
+        )
+        current_nomenclature = (
+            proposed_nomenclature
+        )
+        current_skin = (
+            proposed_skin
         )
 
         current_root_path = (
@@ -4864,7 +5570,70 @@ def get_dan_from_diff(diff):
 # --- Boot ---
 
 
+def _current_main_window_geometry():
+    try:
+        root.update_idletasks()
+    except tk.TclError:
+        pass
+
+    try:
+        width = int(
+            root.winfo_width()
+        )
+        height = int(
+            root.winfo_height()
+        )
+        x = int(
+            root.winfo_x()
+        )
+        y = int(
+            root.winfo_y()
+        )
+    except tk.TclError:
+        width = MODE_WIDTHS[current_mode]
+        height = MODE_HEIGHTS[current_mode]
+        x = 0
+        y = 0
+
+    return {
+        "width": max(
+            350,
+            min(width, 7680)
+        ),
+        "height": max(
+            65,
+            min(height, 4320)
+        ),
+        "x": max(
+            -20000,
+            min(x, 20000)
+        ),
+        "y": max(
+            -20000,
+            min(y, 20000)
+        ),
+    }
+
+
 def _on_app_close():
+    APP_CONFIG[
+        "main_window_geometry"
+    ] = _current_main_window_geometry()
+
+    APP_CONFIG["layout"] = (
+        MODE_NAMES[current_mode]
+    )
+
+    try:
+        config_manager.save_config(
+            APP_CONFIG
+        )
+    except OSError as exc:
+        print(
+            "[Config] Could not save main window geometry:",
+            exc
+        )
+
     try:
         hotkey_manager.stop()
     except Exception:
