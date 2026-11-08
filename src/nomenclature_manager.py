@@ -68,7 +68,7 @@ BUILTIN_PROFILES = json.loads(r'''{
     }
   }
 }''')
-_VALID_FILENAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9 _-]{0,63}\\Z")
+_VALID_FILENAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9 _-]{0,63}\Z")
 
 
 def nomenclatures_dir():
@@ -195,7 +195,7 @@ def apply_nomenclature(default_label, default_numeric, name=DEFAULT_NAME):
 
 def color_key_from_label(label):
     """Keep the existing Dan palette for both naming formats."""
-    tokens = set(re.split(r"[-\\s/]+", str(label)))
+    tokens = set(re.split(r"[-\s/]+", str(label)))
     for key in ("Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta", "Theta"):
         if key in tokens:
             return key
