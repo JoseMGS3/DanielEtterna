@@ -902,6 +902,34 @@ def draw_accent_bar():
     return accent_bar
 
 
+def _center_nonfull_text():
+    """Vertically center the drawn text within the current layout height.
+
+    Compact centers the Dan row; Statistics centers the Dan + MSD group.
+    Bounding boxes account for actual font metrics, resized layouts,
+    localized text, and longer custom nomenclature labels.
+    """
+    if current_mode == MODE_FULL:
+        return
+
+    items = text_items + msd_items
+    if not items:
+        return
+
+    bounds = canvas.bbox(*items)
+    if bounds is None:
+        return
+
+    height = canvas.winfo_height()
+    if height <= 1:
+        height = _saved_mode_size(current_mode)[1]
+
+    vertical_shift = round((height - bounds[1] - bounds[3]) / 2)
+    if vertical_shift:
+        for item in items:
+            canvas.move(item, 0, vertical_shift)
+
+
 def fade_items(text_item, bar_item, start_color, end_color, steps=14):
     global current_bar_color
 
@@ -1105,6 +1133,10 @@ def update_dan_text(dan_label, dan_numeric):
         for item in msd_items:
             canvas.delete(item)
         msd_items.clear()
+
+    # In Compact and Statistics, use the *actual* painted text bounds
+    # to center everything on the window's horizontal midline.
+    _center_nonfull_text()
 
     # El color del gráfico se mantiene sincronizado aunque esté oculto.
     graph.set_color(
