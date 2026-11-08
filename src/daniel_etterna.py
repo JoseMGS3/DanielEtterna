@@ -1189,14 +1189,15 @@ def _rebuild_graph(width, height):
         and len(strain_data) == 2
         and len(strain_data[0]) >= 2
     ):
+        # Set the color before data, so a resized Full graph is
+        # rasterized only once with the right appearance.
+        graph.set_color(current_bar_color)
         graph.set_data(
             strain_data[0],
             strain_data[1]
         )
-
-    graph.set_color(
-        current_bar_color
-    )
+    else:
+        graph.set_color(current_bar_color)
 
     if (
         current_mode == MODE_FULL
@@ -4332,6 +4333,12 @@ def etterna_bridge_loop():
 
         time.sleep(0.1)
 
+def _show_graph_if_full():
+    """Ignore queued show requests after switching out of Full."""
+    if current_mode == MODE_FULL and connection_phase == "ready":
+        graph.show()
+
+
 # --- Calculation loop ---
 
 def calculation_loop():
@@ -4726,8 +4733,8 @@ def calculation_loop():
             last_state = state
 
 
-            # El gráfico recibe los datos aunque el layout actual
-            # no lo muestre, para que aparezca actualizado al volver.
+            # En Compact / Statistics solo se conservan los datos:
+            # FastGraph pospone el renderizado hasta regresar a Full.
             root.after(
                 0,
                 lambda _t=t_arr,
@@ -4747,9 +4754,11 @@ def calculation_loop():
             )
 
             if current_mode == MODE_FULL:
+                # Check the layout again when Tk runs the callback;
+                # the user may have switched to Compact meanwhile.
                 root.after(
                     0,
-                    graph.show
+                    _show_graph_if_full
                 )
 
 
