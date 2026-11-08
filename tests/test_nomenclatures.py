@@ -154,7 +154,15 @@ class NomenclatureTests(unittest.TestCase):
     def test_mma_and_other_profiles_do_not_change(self):
         self.assertEqual(
             names.apply_nomenclature("Low-Alpha", 11.14, "MMA"),
-            ("Alpha low", 11.14),
+            ("Alpha mid/high", 11.14),
+        )
+        self.assertEqual(
+            names.apply_nomenclature("Low-Beta", 12.0, "MMA"),
+            ("Beta mid", 12.0),
+        )
+        self.assertEqual(
+            names.apply_nomenclature("Low-Beta", 12.0, "Mania tracker"),
+            ("Beta low", 12.0),
         )
         self.assertEqual(
             names.apply_nomenclature("Low-Alpha", 11.14, "Default"),
@@ -196,18 +204,25 @@ class NomenclatureTests(unittest.TestCase):
             self.assertEqual(names.apply_nomenclature(label, numeric, "Default"),
                              (label, numeric))
 
-    def test_mma_offsets_only_labels_never_the_displayed_rating(self):
+    def test_mma_uses_dan_centers_without_changing_numeric_dp(self):
         examples = [
-            (11.0, ("Alpha low", 11.0)),
-            (11.2, ("Alpha mid/low", 11.2)),
-            (11.4, ("Alpha mid", 11.4)),
-            (11.5, ("Alpha mid", 11.5)),
-            (11.6, ("Alpha mid/high", 11.6)),
-            (11.8, ("Alpha high", 11.8)),
-            (12.0, ("Beta low", 12.0)),
-            (12.5, ("Beta mid", 12.5)),
-            (17.5, ("Thaumiel Eta mid", 17.5)),
-            (18.5, ("CloverWisp Theta mid", 18.5)),
+            (10.5, ("Alpha low", 10.5)),
+            (10.7, ("Alpha mid/low", 10.7)),
+            (10.9, ("Alpha mid", 10.9)),
+            (11.0, ("Alpha mid", 11.0)),
+            (11.14, ("Alpha mid/high", 11.14)),
+            (11.2, ("Alpha mid/high", 11.2)),
+            (11.4, ("Alpha high", 11.4)),
+            (11.5, ("Beta low", 11.5)),
+            (11.7, ("Beta mid/low", 11.7)),
+            (11.9, ("Beta mid", 11.9)),
+            (12.0, ("Beta mid", 12.0)),
+            (12.08, ("Beta mid", 12.08)),
+            (12.2, ("Beta mid/high", 12.2)),
+            (12.4, ("Beta high", 12.4)),
+            (16.0, ("Emik Zeta mid", 16.0)),
+            (17.0, ("Thaumiel Eta mid", 17.0)),
+            (18.0, ("CloverWisp Theta mid", 18.0)),
         ]
         for default_numeric, expected in examples:
             with self.subTest(default_numeric=default_numeric):
@@ -224,6 +239,21 @@ class NomenclatureTests(unittest.TestCase):
             ("<1st", 0.0),
         )
 
+    def test_old_mma_json_is_upgraded_in_memory_without_overwrite(self):
+        names.ensure_builtin_files()
+        path = self.folder / "nomenclatures" / "MMA.json"
+        old_text = path.read_text(encoding="utf-8")
+        old_text = old_text.replace('"numeric_offset": 0', '"numeric_offset": -0.5')
+        old_text = old_text.replace('"Beta"', '"Custom Beta"')
+        path.write_text(old_text, encoding="utf-8")
+
+        self.assertEqual(
+            names.apply_nomenclature("Mid-Beta", 12.0, "MMA"),
+            ("Custom Beta mid", 12.0),
+        )
+        self.assertEqual(names.load_profile("MMA")["numeric_offset"], 0)
+        self.assertEqual(path.read_text(encoding="utf-8"), old_text)
+
     def test_profiles_survive_reinitialization_and_user_edits(self):
         names.ensure_builtin_files()
         mma_file = self.folder / "nomenclatures" / "MMA.json"
@@ -233,8 +263,8 @@ class NomenclatureTests(unittest.TestCase):
         names.ensure_builtin_files()
         self.assertEqual(mma_file.read_text(encoding="utf-8"), edited)
         self.assertEqual(
-            names.apply_nomenclature("Mid-Zeta", 16.5, "MMA"),
-            ("Custom Zeta mid", 16.5),
+            names.apply_nomenclature("Mid-Zeta", 16.0, "MMA"),
+            ("Custom Zeta mid", 16.0),
         )
 
     def test_corrupt_file_falls_back_without_crashing(self):
@@ -242,7 +272,7 @@ class NomenclatureTests(unittest.TestCase):
         (self.folder / "nomenclatures" / "MMA.json").write_text("{", encoding="utf-8")
         self.assertEqual(
             names.apply_nomenclature("Low-Alpha", 11.0, "MMA"),
-            ("Alpha low", 11.0),
+            ("Alpha mid", 11.0),
         )
 
     def test_config_roundtrip_preserves_selected_nomenclature(self):

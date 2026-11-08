@@ -3,7 +3,7 @@
   "id": "MMA",
   "name": "MMA",
   "label_mode": "centered",
-  "numeric_offset": -0.5,
+  "numeric_offset": 0,
   "tiers": [
     "low",
     "mid/low",

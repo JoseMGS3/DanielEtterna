@@ -33,7 +33,7 @@ BUILTIN_PROFILES = json.loads(r'''{
     "id": "MMA",
     "name": "MMA",
     "label_mode": "centered",
-    "numeric_offset": -0.5,
+    "numeric_offset": 0,
     "tiers": [
       "low",
       "mid/low",
@@ -230,14 +230,22 @@ def available_names():
     return builtin_labels + sorted(names - set(BUILTIN_PROFILES))
 
 
-def _normalize_legacy_tracker_profile(name, data):
-    """Read pre-fix Mania tracker JSON without overwriting user edits.
+def _normalize_legacy_builtin_profile(name, data):
+    """Migrate old built-in classifications in memory, preserving user edits.
 
-    Older releases stored it as a centered ladder with offset zero,
-    incorrectly calling e.g. 11.14 "Alpha mid/high". Interpret that
-    specific legacy combination as integer-based quintiles instead.
+    Existing JSON files are not overwritten on update; an old MMA.json
+    with a -0.5 offset would otherwise classify 12.0 as Beta low instead
+    of Beta mid. Mania tracker also had an earlier centered-mode bug.
     """
     if (
+        name == "MMA"
+        and data.get("id") == "MMA"
+        and data.get("label_mode") == "centered"
+        and data.get("numeric_offset") == -0.5
+    ):
+        data = dict(data)
+        data["numeric_offset"] = 0
+    elif (
         name == "Mania tracker"
         and data.get("id") == "Mania tracker"
         and data.get("label_mode") == "centered"
@@ -258,7 +266,7 @@ def load_profile(name):
             (nomenclatures_dir() / (name + ".json")).read_text(encoding="utf-8")
         )
         if _valid_profile(data):
-            return _normalize_legacy_tracker_profile(name, data)
+            return _normalize_legacy_builtin_profile(name, data)
     except (OSError, ValueError, TypeError):
         pass
     if name in BUILTIN_PROFILES:

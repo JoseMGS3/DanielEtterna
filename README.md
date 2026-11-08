@@ -48,11 +48,14 @@ In **Options → Skins → Nomenclature** you can choose:
 
 - **Default** — the original DanielEtterna labels and numeric ratings, unchanged.
 - **MMA** — Mania Map Analyser's Reform/Greek names and five tiers
-  (`low`, `mid/low`, `mid`, `mid/high`, `high`). Its displayed numeric
-  label classification is shifted by **−0.5**, but the numeric rating
-  shown next to the Dan remains **exactly the original value**.
-  Example: original 11.0 is displayed as `Alpha low (11.0)`, not
-  `Alpha low (10.5)`.
+  (`low`, `mid/low`, `mid`, `mid/high`, `high`).
+  Every integer is the **center** of a Dan: `11.0 → Alpha mid`,
+  `12.0 → Beta mid`. The first half of the next Dan begins at .5,
+  so `10.5 → Alpha low` and `11.5 → Beta low`. This is a half-Dan
+  shift of **naming boundaries relative to Default**, not a subtraction
+  from the displayed numeric DP. Existing old MMA.json files with a
+  `-0.5` offset are interpreted using the corrected centered scale
+  without overwriting custom Dan names.
 - **--/++** — MMA's five subdivisions shown as suffixes, with **no numeric
   offset**: `low → --`, `mid/low → -`, `mid → (no suffix)`,
   `mid/high → +`, `high → ++`. Examples: `9.1 → 9--`,
