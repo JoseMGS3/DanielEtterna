@@ -107,7 +107,7 @@ BUILTIN_PROFILES = json.loads(r'''{
     "schema_version": 1,
     "id": "Mania tracker",
     "name": "Mania tracker",
-    "label_mode": "centered",
+    "label_mode": "interval",
     "numeric_offset": 0,
     "tiers": [
       "low",
@@ -163,7 +163,7 @@ def _valid_profile(data):
     mode = data.get("label_mode")
     if mode == "legacy":
         return True
-    if mode not in ("centered", "suffix"):
+    if mode not in ("centered", "interval", "suffix"):
         return False
     try:
         offset = float(data["numeric_offset"])
@@ -176,7 +176,7 @@ def _valid_profile(data):
         and -5.0 <= offset <= 5.0
         and isinstance(tiers, list)
         and len(tiers) >= 2
-        and (mode != "suffix" or len(tiers) == 5)
+        and (mode not in ("suffix", "interval") or len(tiers) == 5)
         and all(isinstance(t, str) for t in tiers)
         and (mode != "centered" or all(t.strip() for t in tiers))
         and isinstance(dans, dict)
@@ -230,6 +230,24 @@ def available_names():
     return builtin_labels + sorted(names - set(BUILTIN_PROFILES))
 
 
+def _normalize_legacy_tracker_profile(name, data):
+    """Read pre-fix Mania tracker JSON without overwriting user edits.
+
+    Older releases stored it as a centered ladder with offset zero,
+    incorrectly calling e.g. 11.14 "Alpha mid/high". Interpret that
+    specific legacy combination as integer-based quintiles instead.
+    """
+    if (
+        name == "Mania tracker"
+        and data.get("id") == "Mania tracker"
+        and data.get("label_mode") == "centered"
+        and data.get("numeric_offset") == 0
+    ):
+        data = dict(data)
+        data["label_mode"] = "interval"
+    return data
+
+
 def load_profile(name):
     name = _DISPLAY_TO_FILENAME.get(name, name)
     if not _valid_name(name):
@@ -240,7 +258,7 @@ def load_profile(name):
             (nomenclatures_dir() / (name + ".json")).read_text(encoding="utf-8")
         )
         if _valid_profile(data):
-            return data
+            return _normalize_legacy_tracker_profile(name, data)
     except (OSError, ValueError, TypeError):
         pass
     if name in BUILTIN_PROFILES:
@@ -269,12 +287,13 @@ def apply_nomenclature(default_label, default_numeric, name=DEFAULT_NAME):
     display_numeric = default_numeric
     label_numeric = round(float(default_numeric) + float(profile["numeric_offset"]), 2)
     mode = profile["label_mode"]
-    # The --/++ profile keeps unshifted integer-based Dan ranges:
-    # 9.0–9.2 = 9--, 9.2–9.4 = 9-, 9.4–9.6 = 9,
-    # 9.6–9.8 = 9+, 9.8–10.0 = 9++.
+    # "interval" (Mania tracker) and "suffix" (--/++) divide each
+    # unshifted integer Dan into five buckets: .00–.19 low, .20–.39
+    # mid/low, .40–.59 mid, .60–.79 mid/high, .80–.99 high.
+    integer_based = mode in ("suffix", "interval")
     base = (
         math.floor(label_numeric)
-        if mode == "suffix"
+        if integer_based
         else math.floor(label_numeric + 0.5)
     )
     name_at_base = profile["dans"].get(str(base))
@@ -282,7 +301,7 @@ def apply_nomenclature(default_label, default_numeric, name=DEFAULT_NAME):
         return default_label, default_numeric
 
     tiers = profile["tiers"]
-    position = label_numeric - (base if mode == "suffix" else base - 0.5)
+    position = label_numeric - (base if integer_based else base - 0.5)
     index = min(len(tiers) - 1, max(0, math.floor(position * len(tiers) + 1e-9)))
     if mode == "suffix":
         return f"{name_at_base}{tiers[index]}", display_numeric

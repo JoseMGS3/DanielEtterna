@@ -2,7 +2,7 @@
   "schema_version": 1,
   "id": "Mania tracker",
   "name": "Mania tracker",
-  "label_mode": "centered",
+  "label_mode": "interval",
   "numeric_offset": 0,
   "tiers": [
     "low",

@@ -95,26 +95,34 @@ class NomenclatureTests(unittest.TestCase):
         mma = names.load_profile("MMA")
         self.assertEqual(profile["name"], "Mania tracker")
         self.assertEqual(profile["numeric_offset"], 0)
-        self.assertEqual(profile["label_mode"], mma["label_mode"])
+        self.assertEqual(profile["label_mode"], "interval")
+        self.assertEqual(mma["label_mode"], "centered")
         self.assertEqual(profile["tiers"], mma["tiers"])
         self.assertEqual(profile["dans"], mma["dans"])
 
-    def test_mania_tracker_matches_mma_names_without_shift(self):
+    def test_mania_tracker_uses_integer_based_quintiles(self):
         examples = [
-            (9.0, ("Reform 9 mid", 9.0)),
-            (9.3, ("Reform 9 high", 9.3)),
-            (9.5, ("Reform 10 low", 9.5)),
-            (10.5, ("Alpha low", 10.5)),
-            (10.7, ("Alpha mid/low", 10.7)),
-            (10.9, ("Alpha mid", 10.9)),
-            (11.0, ("Alpha mid", 11.0)),
-            (11.1, ("Alpha mid/high", 11.1)),
-            (11.3, ("Alpha high", 11.3)),
-            (11.5, ("Beta low", 11.5)),
-            (12.0, ("Beta mid", 12.0)),
-            (16.0, ("Emik Zeta mid", 16.0)),
-            (17.0, ("Thaumiel Eta mid", 17.0)),
-            (18.0, ("CloverWisp Theta mid", 18.0)),
+            (9.0, ("Reform 9 low", 9.0)),
+            (9.19, ("Reform 9 low", 9.19)),
+            (9.2, ("Reform 9 mid/low", 9.2)),
+            (9.39, ("Reform 9 mid/low", 9.39)),
+            (9.4, ("Reform 9 mid", 9.4)),
+            (9.59, ("Reform 9 mid", 9.59)),
+            (9.6, ("Reform 9 mid/high", 9.6)),
+            (9.79, ("Reform 9 mid/high", 9.79)),
+            (9.8, ("Reform 9 high", 9.8)),
+            (9.99, ("Reform 9 high", 9.99)),
+            (10.0, ("Reform 10 low", 10.0)),
+            (11.14, ("Alpha low", 11.14)),
+            (11.2, ("Alpha mid/low", 11.2)),
+            (11.5, ("Alpha mid", 11.5)),
+            (11.7, ("Alpha mid/high", 11.7)),
+            (11.9, ("Alpha high", 11.9)),
+            (12.08, ("Beta low", 12.08)),
+            (12.4, ("Beta mid", 12.4)),
+            (16.4, ("Emik Zeta mid", 16.4)),
+            (17.4, ("Thaumiel Eta mid", 17.4)),
+            (18.4, ("CloverWisp Theta mid", 18.4)),
         ]
         for numeric, expected in examples:
             with self.subTest(numeric=numeric):
@@ -122,6 +130,40 @@ class NomenclatureTests(unittest.TestCase):
                     names.apply_nomenclature("Mid-Alpha", numeric, "Mania tracker"),
                     expected,
                 )
+
+    def test_old_local_mania_tracker_json_is_upgraded_in_memory(self):
+        names.ensure_builtin_files()
+        profile_file = self.folder / "nomenclatures" / "Mania tracker.json"
+        old_text = profile_file.read_text(encoding="utf-8")
+        old_text = old_text.replace('"label_mode": "interval"', '"label_mode": "centered"')
+        old_text = old_text.replace('"Alpha"', '"Custom Alpha"')
+        profile_file.write_text(old_text, encoding="utf-8")
+
+        self.assertEqual(
+            names.apply_nomenclature("Low-Alpha", 11.14, "Mania tracker"),
+            ("Custom Alpha low", 11.14),
+        )
+        self.assertEqual(
+            names.apply_nomenclature("Low-Beta", 12.08, "Mania tracker"),
+            ("Beta low", 12.08),
+        )
+        self.assertEqual(names.load_profile("Mania tracker")["label_mode"], "interval")
+        # Preserve the existing JSON and any user edits; no forced overwrite.
+        self.assertEqual(profile_file.read_text(encoding="utf-8"), old_text)
+
+    def test_mma_and_other_profiles_do_not_change(self):
+        self.assertEqual(
+            names.apply_nomenclature("Low-Alpha", 11.14, "MMA"),
+            ("Alpha low", 11.14),
+        )
+        self.assertEqual(
+            names.apply_nomenclature("Low-Alpha", 11.14, "Default"),
+            ("Low-Alpha", 11.14),
+        )
+        self.assertEqual(
+            names.apply_nomenclature("Low-Alpha", 11.14, "--/++"),
+            ("Alpha--", 11.14),
+        )
 
     def test_mania_tracker_selection_is_persistent(self):
         with patch.object(config_manager, "get_config_path",

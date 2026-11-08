@@ -60,10 +60,14 @@ In **Options → Skins → Nomenclature** you can choose:
   Reform numeric Dans appear as plain numbers. Because Windows prohibits
   `/` in filenames, the editable JSON is named `PlusMinus.json`; the
   selector displays `--/++`.
-- **Mania tracker** — exactly the same Dan names, five subdivisions,
-  and centered thresholds as MMA, but with **no numeric offset**.
-  Examples: `10.5 → Alpha low`, `11.0 → Alpha mid`,
-  `11.5 → Beta low`. Its editable file is `Mania tracker.json`.
+- **Mania tracker** — uses the same Dan names and five subdivisions
+  as MMA, with **no numeric offset** and integer-based intervals.
+  The fraction of each integer Dan determines the tier: `.00–.19 low`,
+  `.20–.39 mid/low`, `.40–.59 mid`, `.60–.79 mid/high`,
+  `.80–.99 high`. Examples: `11.14 → Alpha low` and
+  `12.08 → Beta low`. Its editable file is `Mania tracker.json`.
+  Previously installed `centered` Mania tracker files are interpreted
+  using the corrected intervals without overwriting personal edits.
 
 The settings are saved to `%LOCALAPPDATA%\\DanielEtterna\\config.json`.
 On first use, editable profile files are installed to
