@@ -1,10 +1,21 @@
-# DanielEtterna v1.1
+# DanielEtterna v1.1.1
 
 A real-time rice difficulty calculator for 4k Etterna. Supports .osu, .ssc and .sm files. (Note: .sm/.ssc charts using WARPS are not currently supported.)
 
 **Ratings below Alpha Dan are enabled, but can be inaccurate.**
 
 **[Original Website](https://thebagelofman.github.io/Daniel/)** · **[Original Daniel](https://github.com/TheBagelOfMan/Daniel)** · **[Download DanielEtterna](https://github.com/JoseMGS3/DanielEtterna/releases)**
+
+## Window layouts (v1.1.1)
+
+The default window sizes are **Full: 650 x 407**, **Compact: 550 x 102**, and
+**Statistics: 650 x 157**. Under **Options → General**, the 50%, 75%, and 100%
+buttons scale the active layout relative to its default size.
+
+The app saves the last window position when closed and maintains a separate
+custom size for every layout. Switching layouts restores each layout's last
+chosen size. The **Skins** tab (same name in English and Spanish) has empty
+**Nomenclature** and **Skin** dropdowns reserved for future options.
 
 # Keybinds 
 
