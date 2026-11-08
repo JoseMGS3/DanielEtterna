@@ -30,7 +30,7 @@ def resource_path(relative_path):
 
 # --- Constants ---
 
-APP_VERSION = "1.1"
+APP_VERSION = "1.1.1"
 TOSU_WS = "ws://localhost:24050/ws"
 
 # ============================================================
@@ -67,9 +67,9 @@ GRAPH_HEIGHT = 250
 BAR_HEIGHT = 120
 WINDOW_WIDTH = 650
 
-COMPACT_HEIGHT = 65
-STATISTICS_HEIGHT = 120
-FULL_HEIGHT = GRAPH_HEIGHT + BAR_HEIGHT
+COMPACT_HEIGHT = 102
+STATISTICS_HEIGHT = 157
+FULL_HEIGHT = 407
 
 COMPACT_WIDTH = 550
 STATISTICS_WIDTH = 650
@@ -91,23 +91,29 @@ MODE_NAME_TO_VALUE = {
     for index, name in enumerate(MODE_NAMES)
 }
 
+# Percentages of each layout's default dimensions.
 WINDOW_SIZE_PRESETS = {
-    "small": {
-        MODE_COMPACT: (420, 65),
-        MODE_STATISTICS: (500, 110),
-        MODE_FULL: (500, 300),
-    },
-    "medium": {
-        MODE_COMPACT: (550, 65),
-        MODE_STATISTICS: (650, 120),
-        MODE_FULL: (650, 370),
-    },
-    "large": {
-        MODE_COMPACT: (750, 80),
-        MODE_STATISTICS: (800, 150),
-        MODE_FULL: (850, 500),
-    },
+    "small": 0.50,
+    "medium": 0.75,
+    "large": 1.00,
 }
+
+
+def _scaled_mode_size(mode, scale):
+    return (
+        max(1, int(MODE_WIDTHS[mode] * scale + 0.5)),
+        max(1, int(MODE_HEIGHTS[mode] * scale + 0.5)),
+    )
+
+
+def _saved_mode_size(mode):
+    default_width = MODE_WIDTHS[mode]
+    default_height = MODE_HEIGHTS[mode]
+    saved = APP_CONFIG.get("window_sizes", {}).get(MODE_NAMES[mode], {})
+    return (
+        max(int(default_width * 0.5 + 0.5), int(saved.get("width", default_width))),
+        max(int(default_height * 0.5 + 0.5), int(saved.get("height", default_height))),
+    )
 
 BG_COLOR = "#000000"
 PREFIX_FILL = "#FFFFFF"
@@ -362,18 +368,18 @@ if os.name == "nt" and hasattr(ctypes, "windll"):
 root = tk.Tk()
 root.tk.call("tk", "scaling", 1.0)
 root.title(f"DanielEtterna {APP_VERSION}")
-root.geometry(
-    f"{MODE_WIDTHS[current_mode]}x{MODE_HEIGHTS[current_mode]}"
-)
+_initial_width, _initial_height = _saved_mode_size(current_mode)
+_saved_geometry = APP_CONFIG.get("main_window_geometry", "")
+try:
+    root.geometry(
+        _saved_geometry or f"{_initial_width}x{_initial_height}"
+    )
+except tk.TclError:
+    root.geometry(f"{_initial_width}x{_initial_height}")
 root.resizable(True, True)
 
-# Permitimos reducir la ventana sin romper el modo compacto.
-_initial_min_height = {
-    MODE_COMPACT: COMPACT_HEIGHT,
-    MODE_STATISTICS: STATISTICS_HEIGHT,
-    MODE_FULL: BAR_HEIGHT + 80,
-}[current_mode]
-root.minsize(350, _initial_min_height)
+# Allow the 50% preset for every layout.
+root.minsize(*_scaled_mode_size(current_mode, 0.50))
 
 root.configure(bg=BG_COLOR)
 root.attributes("-topmost", True)
@@ -1243,29 +1249,37 @@ def _on_window_resize(event):
 
 # --- Mode switching ---
 
-def _apply_window_preset(preset_name):
-    preset = WINDOW_SIZE_PRESETS.get(
-        preset_name
-    )
-
-    if not preset:
+def _remember_main_window_size():
+    """Remember a resized layout without writing config on every <Configure>."""
+    try:
+        if root.state() != "normal":
+            return
+        root.update_idletasks()
+        width = int(root.winfo_width())
+        height = int(root.winfo_height())
+    except tk.TclError:
         return
 
-    width, height = preset[current_mode]
+    if width > 1 and height > 1:
+        APP_CONFIG.setdefault("window_sizes", {})[
+            MODE_NAMES[current_mode]
+        ] = {"width": width, "height": height}
 
-    root.geometry(
-        f"{width}x{height}"
-    )
 
-    canvas.configure(
-        width=width,
-        height=height,
-    )
+def _apply_window_preset(preset_name):
+    scale = WINDOW_SIZE_PRESETS.get(preset_name)
+    if scale is None:
+        return
 
-    root.after(
-        100,
-        _resize_contents
-    )
+    width, height = _scaled_mode_size(current_mode, scale)
+
+    APP_CONFIG.setdefault("window_sizes", {})[
+        MODE_NAMES[current_mode]
+    ] = {"width": width, "height": height}
+
+    root.geometry(f"{width}x{height}")
+    canvas.configure(width=width, height=height)
+    root.after(100, _resize_contents)
 
 
 def _save_layout_preference():
@@ -1285,19 +1299,9 @@ def _save_layout_preference():
 
 
 def _apply_mode():
-    h = MODE_HEIGHTS[current_mode]
-    w = MODE_WIDTHS[current_mode]
+    w, h = _saved_mode_size(current_mode)
 
-    min_height = {
-        MODE_COMPACT: COMPACT_HEIGHT,
-        MODE_STATISTICS: STATISTICS_HEIGHT,
-        MODE_FULL: BAR_HEIGHT + 80,
-    }[current_mode]
-
-    root.minsize(
-        350,
-        min_height
-    )
+    root.minsize(*_scaled_mode_size(current_mode, 0.50))
 
     root.geometry(f"{w}x{h}")
     canvas.configure(width=w, height=h)
@@ -1326,6 +1330,9 @@ def _apply_mode():
 
 def cycle_mode(event=None):
     global current_mode
+
+    # Capture the outgoing layout before its geometry is replaced.
+    _remember_main_window_size()
 
     current_mode = (
         current_mode + 1
@@ -1986,6 +1993,62 @@ def open_settings(event=None):
     tab_buttons["style"].pack(
         side="left",
     )
+
+    # --------------------------------------------------------
+    # SKINS (selectors intentionally have no options yet)
+    # --------------------------------------------------------
+    style_tab.grid_columnconfigure(0, weight=0, minsize=170)
+    style_tab.grid_columnconfigure(1, weight=1)
+
+    skins_heading = tk.Label(
+        style_tab,
+        text=tr("style_tab"),
+        bg=BG_COLOR,
+        fg=fg,
+        font=title_font,
+        anchor="w",
+    )
+    skins_heading.grid(
+        row=0, column=0, columnspan=2,
+        padx=10, pady=(4, 16), sticky="ew",
+    )
+
+    empty_selector_style = ttk.Style(win)
+    empty_selector_style.configure(
+        "DanielEtterna.TCombobox",
+        fieldbackground=entry_bg,
+        background=button_bg,
+        foreground=fg,
+        arrowcolor=fg,
+    )
+    empty_selector_style.map(
+        "DanielEtterna.TCombobox",
+        fieldbackground=[("readonly", entry_bg)],
+        foreground=[("readonly", fg)],
+    )
+
+    for row_index, label_key in enumerate(
+        ("nomenclature_label", "skin_label"), start=1
+    ):
+        tk.Label(
+            style_tab,
+            text=tr(label_key),
+            bg=BG_COLOR,
+            fg=fg,
+            font=normal_font,
+            anchor="w",
+        ).grid(row=row_index, column=0, padx=10, pady=8, sticky="w")
+
+        ttk.Combobox(
+            style_tab,
+            values=(),
+            state="readonly",
+            font=normal_font,
+            style="DanielEtterna.TCombobox",
+        ).grid(
+            row=row_index, column=1,
+            padx=(0, 10), pady=8, sticky="ew",
+        )
 
     # --------------------------------------------------------
     # LAYOUT RESPONSIVE - GENERAL
@@ -2725,10 +2788,15 @@ def open_settings(event=None):
             global_hotkeys_var.get()
         )
 
+        # Saving Options must not discard sizes set on the main window.
+        _remember_main_window_size()
+
         new_config = {
             "etterna_root": clean_path,
             "language": proposed_language,
             "layout": MODE_NAMES[current_mode],
+            "main_window_geometry": APP_CONFIG.get("main_window_geometry", ""),
+            "window_sizes": dict(APP_CONFIG.get("window_sizes", {})),
             "global_hotkeys": proposed_global_hotkeys,
             "settings_window_size": (
                 _current_settings_window_size()
@@ -4865,6 +4933,17 @@ def get_dan_from_diff(diff):
 
 
 def _on_app_close():
+    # Store the final size for this layout, plus Tk's exact geometry
+    # (including the screen position, which can be negative on a 2nd display).
+    try:
+        _remember_main_window_size()
+        if root.state() == "normal":
+            APP_CONFIG["main_window_geometry"] = root.geometry()
+        APP_CONFIG["layout"] = MODE_NAMES[current_mode]
+        config_manager.save_config(APP_CONFIG)
+    except (OSError, tk.TclError) as exc:
+        print("[Config] Could not save main window geometry:", exc)
+
     try:
         hotkey_manager.stop()
     except Exception:
