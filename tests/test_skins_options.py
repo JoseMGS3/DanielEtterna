@@ -56,6 +56,13 @@ class SkinsOptionsTests(unittest.TestCase):
         self.assertEqual(len(empty_dropdowns), 1)
         self.assertIn("values=nomenclature_names", source)
         self.assertIn("textvariable=nomenclature_var", source)
+        self.assertIn("nomenclature_selector.current(", source)
+        self.assertIn('value=APP_CONFIG.get("nomenclature", "Default")', source)
+        self.assertIn('command=_save_settings,', source)
+        self.assertIn('command=_on_close,', source)
+        self.assertIn('skins_button_bar.grid(', source)
+        self.assertIn('skins_save_button = tk.Button(', source)
+        self.assertIn('skins_cancel_button = tk.Button(', source)
 
 
 if __name__ == "__main__":

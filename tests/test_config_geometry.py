@@ -13,11 +13,11 @@ class MainWindowConfigTests(unittest.TestCase):
     def test_upgrade_from_v11_adds_default_per_layout_sizes(self):
         old = {"config_version": 6, "layout": "statistics"}
         merged = config_manager._merge_defaults(old)
-        self.assertEqual(merged["config_version"], 7)
+        self.assertEqual(merged["config_version"], 8)
         self.assertEqual(merged["layout"], "statistics")
         self.assertEqual(merged["window_sizes"], {
-            "compact": {"width": 550, "height": 102},
-            "statistics": {"width": 650, "height": 157},
+            "compact": {"width": 550, "height": 72},
+            "statistics": {"width": 650, "height": 116},
             "full": {"width": 650, "height": 407},
         })
         self.assertEqual(merged["main_window_geometry"], "")
@@ -46,10 +46,47 @@ class MainWindowConfigTests(unittest.TestCase):
             }
         })
         self.assertEqual(merged["window_sizes"], {
-            "compact": {"width": 275, "height": 51},
-            "statistics": {"width": 325, "height": 79},
+            "compact": {"width": 275, "height": 36},
+            "statistics": {"width": 325, "height": 58},
             "full": {"width": 325, "height": 204},
         })
+
+    def test_migrates_old_compact_preset_and_geometry(self):
+        merged = config_manager._merge_defaults({
+            "config_version": 7,
+            "layout": "compact",
+            "main_window_geometry": "550x102+120+200",
+            "window_sizes": {
+                "compact": {"width": 550, "height": 102},
+                "statistics": {"width": 488, "height": 118},
+                "full": {"width": 650, "height": 407},
+            },
+        })
+        self.assertEqual(merged["main_window_geometry"], "550x72+120+200")
+        self.assertEqual(merged["window_sizes"]["compact"]["height"], 72)
+        self.assertEqual(merged["window_sizes"]["statistics"]["height"], 87)
+
+    def test_migrates_old_statistics_geometry_preserving_monitor_position(self):
+        merged = config_manager._merge_defaults({
+            "config_version": 7,
+            "layout": "statistics",
+            "main_window_geometry": "650x157+-1920+108",
+        })
+        self.assertEqual(merged["main_window_geometry"], "650x116+-1920+108")
+
+    def test_preserves_custom_sizes_when_migrating(self):
+        merged = config_manager._merge_defaults({
+            "config_version": 7,
+            "layout": "compact",
+            "main_window_geometry": "490x85+125+250",
+            "window_sizes": {
+                "compact": {"width": 490, "height": 85},
+                "statistics": {"width": 510, "height": 125},
+            },
+        })
+        self.assertEqual(merged["main_window_geometry"], "490x85+125+250")
+        self.assertEqual(merged["window_sizes"]["compact"]["height"], 85)
+        self.assertEqual(merged["window_sizes"]["statistics"]["height"], 125)
 
     def test_save_and_reload_main_window_size(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -58,8 +58,8 @@ class WindowSizePresetTests(unittest.TestCase):
             },
             {
                 ns["MODE_FULL"]: (650, 407),
-                ns["MODE_COMPACT"]: (550, 102),
-                ns["MODE_STATISTICS"]: (650, 157),
+                ns["MODE_COMPACT"]: (550, 72),
+                ns["MODE_STATISTICS"]: (650, 116),
             },
         )
 
@@ -69,9 +69,9 @@ class WindowSizePresetTests(unittest.TestCase):
             "50%": 0.5, "75%": 0.75, "100%": 1.0,
         })
         sizes = {
-            "50%": [(275, 51), (325, 79), (325, 204)],
-            "75%": [(413, 77), (488, 118), (488, 305)],
-            "100%": [(550, 102), (650, 157), (650, 407)],
+            "50%": [(275, 36), (325, 58), (325, 204)],
+            "75%": [(413, 54), (488, 87), (488, 305)],
+            "100%": [(550, 72), (650, 116), (650, 407)],
         }
         for name, expected in sizes.items():
             for mode, pixels in enumerate(expected):

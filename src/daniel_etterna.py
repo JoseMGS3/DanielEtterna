@@ -68,8 +68,8 @@ GRAPH_HEIGHT = 250
 BAR_HEIGHT = 120
 WINDOW_WIDTH = 650
 
-COMPACT_HEIGHT = 102
-STATISTICS_HEIGHT = 157
+COMPACT_HEIGHT = 72
+STATISTICS_HEIGHT = 116
 FULL_HEIGHT = 407
 
 COMPACT_WIDTH = 550
@@ -1952,6 +1952,12 @@ def open_settings(event=None):
         )
 
         selected.tkraise()
+        if name == "skins" and not nomenclature_selector.get():
+            # Explicitly restore the current entry if Tk left it blank.
+            chosen = nomenclature_var.get()
+            if chosen not in nomenclature_names:
+                chosen = "Default"
+            nomenclature_selector.current(nomenclature_names.index(chosen))
 
         for tab_name, button in (
             tab_buttons.items()
@@ -2063,12 +2069,13 @@ def open_settings(event=None):
         foreground=[("readonly", fg)],
     )
 
-    nomenclature_var = tk.StringVar(
-        value=APP_CONFIG.get("nomenclature", "Default")
-    )
+    # Use an explicit Tk master and set the combobox index. The previous
+    # StringVar-only initialization could appear blank on some Windows themes.
     nomenclature_names = nomenclature_manager.available_names()
-    if nomenclature_var.get() not in nomenclature_names:
-        nomenclature_var.set("Default")
+    selected_nomenclature = APP_CONFIG.get("nomenclature", "Default")
+    if selected_nomenclature not in nomenclature_names:
+        selected_nomenclature = "Default"
+    nomenclature_var = tk.StringVar(master=win, value=selected_nomenclature)
 
     for row_index, label_key in enumerate(
         ("nomenclature_label", "skin_label"), start=1
@@ -2091,6 +2098,10 @@ def open_settings(event=None):
                 font=normal_font,
                 style="DanielEtterna.TCombobox",
             )
+            nomenclature_selector = selector
+            nomenclature_selector.current(
+                nomenclature_names.index(selected_nomenclature)
+            )
         else:
             # The Skin selector is still a placeholder.
             selector = ttk.Combobox(
@@ -2105,6 +2116,9 @@ def open_settings(event=None):
             row=row_index, column=1,
             padx=(0, 10), pady=8, sticky="ew",
         )
+
+    # Keep room for the Save/Cancel actions at the bottom of Skins.
+    skins_tab.grid_rowconfigure(3, weight=1)
 
     # --------------------------------------------------------
     # LAYOUT RESPONSIVE - GENERAL
@@ -2979,6 +2993,49 @@ def open_settings(event=None):
     save_button.pack(
         side="left",
     )
+
+    # Skins uses the same Save/Cancel handlers as General. Keeping the
+    # buttons in each tab means they remain visible while editing names.
+    skins_button_bar = tk.Frame(
+        skins_tab,
+        bg=BG_COLOR,
+        bd=0,
+        highlightthickness=0,
+    )
+    skins_button_bar.grid(
+        row=4, column=0, columnspan=2,
+        sticky="e", padx=10, pady=(7, 8),
+    )
+    skins_cancel_button = tk.Button(
+        skins_button_bar,
+        text=tr("cancel"),
+        command=_on_close,
+        bg=button_bg,
+        fg=fg,
+        activebackground="#333333",
+        activeforeground=fg,
+        relief="flat",
+        bd=0,
+        font=small_font,
+        padx=18,
+        pady=5,
+    )
+    skins_cancel_button.pack(side="left", padx=(0, 8))
+    skins_save_button = tk.Button(
+        skins_button_bar,
+        text=tr("save"),
+        command=_save_settings,
+        bg="#FFFFFF",
+        fg="#000000",
+        activebackground="#DDDDDD",
+        activeforeground="#000000",
+        relief="flat",
+        bd=0,
+        font=small_font,
+        padx=20,
+        pady=5,
+    )
+    skins_save_button.pack(side="left")
 
     # --------------------------------------------------------
     # RESPONSIVE RESIZE

@@ -8,15 +8,15 @@ import i18n
 
 
 DEFAULT_CONFIG = {
-    "config_version": 7,
+    "config_version": 8,
     "etterna_root": "",
     "language": i18n.DEFAULT_LANGUAGE,
     "layout": "full",
     "nomenclature": "Default",
     "main_window_geometry": "",
     "window_sizes": {
-        "compact": {"width": 550, "height": 102},
-        "statistics": {"width": 650, "height": 157},
+        "compact": {"width": 550, "height": 72},
+        "statistics": {"width": 650, "height": 116},
         "full": {"width": 650, "height": 407},
     },
     "global_hotkeys": False,
@@ -46,6 +46,30 @@ def get_config_dir():
 
 def get_config_path():
     return get_config_dir() / "config.json"
+
+
+# Dimensions used before v8. Only known 50/75/100% presets are migrated,
+# preserving genuinely custom sizes selected by the user.
+_LEGACY_LAYOUT_SIZES = {
+    "compact": (550, 102),
+    "statistics": (650, 157),
+}
+_LEGACY_PRESET_SCALES = (0.5, 0.75, 1.0)
+
+
+def _migrate_legacy_preset_size(layout, width, height, source_version):
+    if source_version >= 8 or layout not in _LEGACY_LAYOUT_SIZES:
+        return width, height
+    old_width, old_height = _LEGACY_LAYOUT_SIZES[layout]
+    new_height = DEFAULT_CONFIG["window_sizes"][layout]["height"]
+    for scale in _LEGACY_PRESET_SCALES:
+        old_size = (
+            int(old_width * scale + 0.5),
+            int(old_height * scale + 0.5),
+        )
+        if (width, height) == old_size:
+            return width, int(new_height * scale + 0.5)
+    return width, height
 
 
 def _merge_defaults(data):
@@ -92,6 +116,9 @@ def _merge_defaults(data):
                 height = int(incoming["height"])
             except (KeyError, ValueError, TypeError, OverflowError):
                 continue
+            width, height = _migrate_legacy_preset_size(
+                name, width, height, source_version
+            )
             result["window_sizes"][name] = {
                 "width": max(int(defaults["width"] * 0.5 + 0.5), min(width, 3840)),
                 "height": max(int(defaults["height"] * 0.5 + 0.5), min(height, 2160)),
@@ -102,7 +129,16 @@ def _merge_defaults(data):
     if isinstance(window_geometry, str) and re.fullmatch(
         r"\d+x\d+(?:[+-]-?\d+[+-]-?\d+)?", window_geometry
     ):
-        result["main_window_geometry"] = window_geometry
+        # The active window's saved geometry can otherwise restore an old
+        # oversized preset even after updating window_sizes.
+        match = re.match(r"(\d+)x(\d+)(.*)", window_geometry)
+        width, height = int(match.group(1)), int(match.group(2))
+        _, migrated_height = _migrate_legacy_preset_size(
+            result["layout"], width, height, source_version
+        )
+        result["main_window_geometry"] = (
+            f"{width}x{migrated_height}{match.group(3)}"
+        )
 
     global_hotkeys = data.get("global_hotkeys")
     if isinstance(global_hotkeys, bool):
