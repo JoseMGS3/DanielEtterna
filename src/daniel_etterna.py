@@ -472,6 +472,15 @@ def _get_text_y_offset():
     return graph.graph_height if current_mode == MODE_FULL else 0
 
 
+def _ui_text_scale():
+    # Full retains a 120px text area even with a smaller graph.
+    # Compact / Statistics must also shrink text at 50% or 75%.
+    if current_mode == MODE_FULL:
+        return 1.0
+    actual_height = max(1, canvas.winfo_height())
+    return max(0.5, min(1.0, actual_height / MODE_HEIGHTS[current_mode]))
+
+
 def _canvas_text_width():
     width = canvas.winfo_width()
     return width if width > 1 else MODE_WIDTHS[current_mode]
@@ -814,7 +823,12 @@ def draw_msd(msd_result, color):
     if current_mode == MODE_COMPACT:
         return
 
-    y = _get_text_y_offset() + 80
+    ui_scale = _ui_text_scale()
+    y = _get_text_y_offset() + 80 * ui_scale
+    msd_font = _font_with_size(
+        FONT_MSD_SKILL,
+        max(10, int(abs(FONT_MSD_SKILL[1]) * ui_scale + 0.5)),
+    )
     available_width = max(
         1,
         _canvas_text_width() - 28
@@ -828,9 +842,9 @@ def draw_msd(msd_result, color):
 
         font = _fit_font_to_width(
             text,
-            FONT_MSD_SKILL,
+            msd_font,
             available_width,
-            min_size=12,
+            min_size=8,
         )
 
         msd_items += draw_text(
@@ -937,8 +951,9 @@ def update_dan_text(dan_label, dan_numeric):
     bar = draw_accent_bar()
 
     y_off = _get_text_y_offset()
-    y = y_off + 28
-    prefix_y = y + PREFIX_Y_OFFSET
+    ui_scale = _ui_text_scale()
+    y = y_off + 28 * ui_scale
+    prefix_y = y + PREFIX_Y_OFFSET * ui_scale
 
     prefix_text = i18n.t(
         "estimated_dan",
@@ -996,6 +1011,15 @@ def update_dan_text(dan_label, dan_numeric):
         display_label,
         display_numeric
     )
+
+    if ui_scale < 1.0:
+        prefix_font = _font_with_size(
+            prefix_font, max(8, abs(int(prefix_font[1])) * ui_scale)
+        )
+        dan_font = _font_with_size(
+            dan_font, max(12, abs(int(dan_font[1])) * ui_scale)
+        )
+        numeric_font = prefix_font
 
     prefix = draw_text(
         14,
@@ -2794,6 +2818,7 @@ def open_settings(event=None):
         new_config = {
             "etterna_root": clean_path,
             "language": proposed_language,
+            "config_version": config_manager.DEFAULT_CONFIG["config_version"],
             "layout": MODE_NAMES[current_mode],
             "main_window_geometry": APP_CONFIG.get("main_window_geometry", ""),
             "window_sizes": dict(APP_CONFIG.get("window_sizes", {})),
