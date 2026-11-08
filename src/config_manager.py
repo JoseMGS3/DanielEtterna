@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from copy import deepcopy
 from pathlib import Path
 
@@ -7,10 +8,16 @@ import i18n
 
 
 DEFAULT_CONFIG = {
-    "config_version": 6,
+    "config_version": 7,
     "etterna_root": "",
     "language": i18n.DEFAULT_LANGUAGE,
     "layout": "full",
+    "main_window_geometry": "",
+    "window_sizes": {
+        "compact": {"width": 550, "height": 102},
+        "statistics": {"width": 650, "height": 157},
+        "full": {"width": 650, "height": 407},
+    },
     "global_hotkeys": False,
     "settings_window_size": {
         "width": 680,
@@ -65,6 +72,30 @@ def _merge_defaults(data):
     layout = str(data.get("layout", "full")).strip().lower()
     if layout in ("compact", "statistics", "full"):
         result["layout"] = layout
+
+    # Each layout keeps its own user-defined dimensions.
+    saved_sizes = data.get("window_sizes")
+    if isinstance(saved_sizes, dict):
+        for name, defaults in result["window_sizes"].items():
+            incoming = saved_sizes.get(name)
+            if not isinstance(incoming, dict):
+                continue
+            try:
+                width = int(incoming["width"])
+                height = int(incoming["height"])
+            except (KeyError, ValueError, TypeError, OverflowError):
+                continue
+            result["window_sizes"][name] = {
+                "width": max(int(defaults["width"] * 0.5 + 0.5), min(width, 3840)),
+                "height": max(int(defaults["height"] * 0.5 + 0.5), min(height, 2160)),
+            }
+
+    # Stored by Tk itself, so negative multi-monitor coordinates survive.
+    window_geometry = data.get("main_window_geometry")
+    if isinstance(window_geometry, str) and re.fullmatch(
+        r"\d+x\d+(?:[+-]-?\d+[+-]-?\d+)?", window_geometry
+    ):
+        result["main_window_geometry"] = window_geometry
 
     global_hotkeys = data.get("global_hotkeys")
     if isinstance(global_hotkeys, bool):
