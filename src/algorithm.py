@@ -466,7 +466,6 @@ def smooth_D_for_graph(all_corners, D_all, note_seq):
 
 def _calculate_preprocessed(x, K, T, note_seq, note_seq_by_column):
     all_corners, base_corners, A_corners = get_corners(T, note_seq)
-    all_corners, base_corners, A_corners = get_corners(T, note_seq)
 
     key_usage = get_key_usage(K, T, note_seq, base_corners)
     active_columns = [[k for k in range(K) if key_usage[k][i]] for i in range(len(base_corners))]

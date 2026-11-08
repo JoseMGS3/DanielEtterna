@@ -92,9 +92,16 @@ class FastGraph:
         self.clear_all_pause_markers()
 
     def set_color(self, hex_color):
-        self._color_rgb = _hex_to_rgb(hex_color)
-        self._played_fill_rgb = _lerp_rgb(BG_COLOR_RGB, self._color_rgb, 0.45)
-        self._played_stroke_rgb = _lerp_rgb(BG_COLOR_RGB, self._color_rgb, 0.85)
+        new_color_rgb = _hex_to_rgb(hex_color)
+
+        # Rebuilding both graph images is expensive. Keep the existing
+        # images when the requested color is already active.
+        if new_color_rgb == self._color_rgb:
+            return
+
+        self._color_rgb = new_color_rgb
+        self._played_fill_rgb = _lerp_rgb(BG_COLOR_RGB, new_color_rgb, 0.45)
+        self._played_stroke_rgb = _lerp_rgb(BG_COLOR_RGB, new_color_rgb, 0.85)
 
         if self._poly_data is not None:
             self._rebuild_images()
