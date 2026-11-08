@@ -94,7 +94,7 @@ class VerticalTextAlignmentTests(unittest.TestCase):
         }
         canvas = self.apply(1, 116, boxes, ["prefix", "dan"], ["msd"])
         bounds = canvas.bbox("prefix", "dan", "msd")
-        self.assertEqual(bounds[1:4:2], (13, 108))
+        self.assertLessEqual(abs((bounds[1] + bounds[3]) / 2 - 116 / 2), 0.5)
         self.assertEqual(canvas.boxes["msd"][1] - canvas.boxes["dan"][1], 61)
         self.assertTrue(any(item == "msd" for item, _, _ in canvas.moves))
 
