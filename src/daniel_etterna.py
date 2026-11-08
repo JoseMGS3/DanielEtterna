@@ -93,9 +93,9 @@ MODE_NAME_TO_VALUE = {
 
 # Percentages of each layout's default dimensions.
 WINDOW_SIZE_PRESETS = {
-    "small": 0.50,
-    "medium": 0.75,
-    "large": 1.00,
+    "50%": 0.50,
+    "75%": 0.75,
+    "100%": 1.00,
 }
 
 
@@ -875,9 +875,9 @@ def draw_msd(msd_result, color):
 
     font = _fit_font_to_width(
         text,
-        FONT_MSD_SKILL,
+        msd_font,
         available_width,
-        min_size=12,
+        min_size=8,
     )
 
     msd_items += draw_text(
@@ -2340,16 +2340,16 @@ def open_settings(event=None):
     ) in enumerate(
         (
             (
-                tr("size_small"),
-                "small",
+                tr("size_50_percent"),
+                "50%",
             ),
             (
-                tr("size_medium"),
-                "medium",
+                tr("size_75_percent"),
+                "75%",
             ),
             (
-                tr("size_large"),
-                "large",
+                tr("size_100_percent"),
+                "100%",
             ),
         )
     ):
