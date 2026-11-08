@@ -1541,6 +1541,18 @@ def apply_keybinds():
             _dispatch_keypress,
             add="+",
         )
+
+        # Tk gives Tab/Shift+Tab special focus-navigation bindings on
+        # the "all" bindtag. Those specific bindings take precedence
+        # over a generic <KeyPress> binding on the same tag. Register
+        # Tab on the toplevel bindtag, which runs before "all".
+        # _dispatch_keypress only returns "break" for an actual
+        # focus-only hotkey, so normal Tab navigation still works
+        # when the binding is different or Options is open.
+        root.bind("<Tab>", _dispatch_keypress, add="+")
+        root.bind("<Shift-Tab>", _dispatch_keypress, add="+")
+        root.bind("<ISO_Left_Tab>", _dispatch_keypress, add="+")
+
         _local_key_dispatch_installed = True
 
     # Reiniciar el hook para aplicar inmediatamente cambios de teclas
