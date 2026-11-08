@@ -1912,7 +1912,7 @@ def open_settings(event=None):
         bd=0,
         highlightthickness=0,
     )
-    style_tab = tk.Frame(
+    skins_tab = tk.Frame(
         content_host,
         bg=BG_COLOR,
         bd=0,
@@ -1921,7 +1921,7 @@ def open_settings(event=None):
 
     for tab in (
         general_tab,
-        style_tab,
+        skins_tab,
     ):
         tab.place(
             x=0,
@@ -1936,7 +1936,7 @@ def open_settings(event=None):
         selected = (
             general_tab
             if name == "general"
-            else style_tab
+            else skins_tab
         )
 
         selected.tkraise()
@@ -1993,12 +1993,12 @@ def open_settings(event=None):
         padx=(0, 10),
     )
 
-    tab_buttons["style"] = tk.Button(
+    tab_buttons["skins"] = tk.Button(
         tabs_bar,
-        text=tr("style_tab"),
+        text=tr("skins_tab"),
         command=lambda: (
             _show_settings_tab(
-                "style"
+                "skins"
             )
         ),
         bg="#151515",
@@ -2014,19 +2014,19 @@ def open_settings(event=None):
         padx=32,
         pady=11,
     )
-    tab_buttons["style"].pack(
+    tab_buttons["skins"].pack(
         side="left",
     )
 
     # --------------------------------------------------------
     # SKINS (selectors intentionally have no options yet)
     # --------------------------------------------------------
-    style_tab.grid_columnconfigure(0, weight=0, minsize=170)
-    style_tab.grid_columnconfigure(1, weight=1)
+    skins_tab.grid_columnconfigure(0, weight=0, minsize=170)
+    skins_tab.grid_columnconfigure(1, weight=1)
 
     skins_heading = tk.Label(
-        style_tab,
-        text=tr("style_tab"),
+        skins_tab,
+        text=tr("skins_tab"),
         bg=BG_COLOR,
         fg=fg,
         font=title_font,
@@ -2055,7 +2055,7 @@ def open_settings(event=None):
         ("nomenclature_label", "skin_label"), start=1
     ):
         tk.Label(
-            style_tab,
+            skins_tab,
             text=tr(label_key),
             bg=BG_COLOR,
             fg=fg,
@@ -2064,7 +2064,7 @@ def open_settings(event=None):
         ).grid(row=row_index, column=0, padx=10, pady=8, sticky="w")
 
         ttk.Combobox(
-            style_tab,
+            skins_tab,
             values=(),
             state="readonly",
             font=normal_font,
