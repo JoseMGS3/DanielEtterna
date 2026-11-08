@@ -1,3 +1,13 @@
+## Version 1.1.1
+
+- Restores the main window's size and on-screen position after closing and reopening.
+- Remembers an independently resized window for each Compact, Statistics and Full layout.
+- Changes the default window sizes to Compact 550x102, Statistics 650x157 and Full 650x407.
+- Replaces window size presets with 50%, 75%, and 100% of each layout's base size.
+- Scales the Compact and Statistics overlay text for smaller window sizes.
+- Renames the Style tab to Skins in English and Spanish.
+- Adds empty Nomenclature and Skin dropdowns for future customization.
+
 ## Version 1.1
 
 - Clears stale Etterna bridge state on startup so the previous chart is not shown.
