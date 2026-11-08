@@ -1,4 +1,4 @@
-"""Regression tests for the versioned Default and MMA nomenclatures."""
+"""Regression tests for Default, MMA, and --/++ nomenclatures."""
 import sys
 import tempfile
 import unittest
@@ -25,6 +25,64 @@ class NomenclatureTests(unittest.TestCase):
         self.assertEqual(names.available_names()[:2], ["Default", "MMA"])
         self.assertTrue((self.folder / "nomenclatures" / "Default.json").is_file())
         self.assertTrue((self.folder / "nomenclatures" / "MMA.json").is_file())
+
+    def test_signs_profile_is_installed_and_listed_by_display_name(self):
+        self.assertEqual(names.available_names()[:3], ["Default", "MMA", "--/++"])
+        saved = self.folder / "nomenclatures" / "PlusMinus.json"
+        self.assertTrue(saved.is_file())
+        self.assertEqual(names.load_profile("--/++")["name"], "--/++")
+        # A slash in the label must not create a nested directory.
+        self.assertFalse((self.folder / "nomenclatures" / "--").exists())
+
+    def test_signs_five_tiers_without_numeric_shift(self):
+        examples = [
+            (9.0, ("9--", 9.0)),
+            (9.1, ("9--", 9.1)),
+            (9.2, ("9-", 9.2)),
+            (9.3, ("9-", 9.3)),
+            (9.4, ("9", 9.4)),
+            (9.5, ("9", 9.5)),
+            (9.6, ("9+", 9.6)),
+            (9.7, ("9+", 9.7)),
+            (9.8, ("9++", 9.8)),
+            (9.9, ("9++", 9.9)),
+            (10.0, ("10--", 10.0)),
+            (11.1, ("Alpha--", 11.1)),
+            (11.5, ("Alpha", 11.5)),
+            (11.8, ("Alpha++", 11.8)),
+            (16.8, ("Emik Zeta++", 16.8)),
+            (17.5, ("Thaumiel Eta", 17.5)),
+            (18.6, ("CloverWisp Theta+", 18.6)),
+        ]
+        for value, expected in examples:
+            with self.subTest(value=value):
+                self.assertEqual(
+                    names.apply_nomenclature("Low-9th", value, "--/++"),
+                    expected,
+                )
+
+    def test_signs_does_not_invent_unsupported_dans(self):
+        self.assertEqual(
+            names.apply_nomenclature("<1st", 0.0, "--/++"),
+            ("<1st", 0.0),
+        )
+        self.assertEqual(
+            names.apply_nomenclature("? ? ? ? ?", "N/A", "--/++"),
+            ("? ? ? ? ?", "N/A"),
+        )
+
+    def test_signs_files_preserve_user_edits(self):
+        names.ensure_builtin_files()
+        path = self.folder / "nomenclatures" / "PlusMinus.json"
+        source = path.read_text(encoding="utf-8")
+        updated = source.replace('"Alpha"', '"Custom Alpha"')
+        path.write_text(updated, encoding="utf-8")
+        names.ensure_builtin_files()
+        self.assertEqual(path.read_text(encoding="utf-8"), updated)
+        self.assertEqual(
+            names.apply_nomenclature("Mid-Alpha", 11.8, "--/++"),
+            ("Custom Alpha++", 11.8),
+        )
 
     def test_default_never_changes_legacy_labels_or_numbers(self):
         for label, numeric in [
@@ -90,10 +148,11 @@ class NomenclatureTests(unittest.TestCase):
     def test_config_roundtrip_preserves_selected_nomenclature(self):
         with patch.object(config_manager, "get_config_path",
                           return_value=self.folder / "config.json"):
-            cfg = config_manager._merge_defaults({"nomenclature": "MMA"})
-            self.assertEqual(cfg["nomenclature"], "MMA")
-            config_manager.save_config(cfg)
-            self.assertEqual(config_manager.load_config()["nomenclature"], "MMA")
+            for selected in ("MMA", "--/++"):
+                cfg = config_manager._merge_defaults({"nomenclature": selected})
+                self.assertEqual(cfg["nomenclature"], selected)
+                config_manager.save_config(cfg)
+                self.assertEqual(config_manager.load_config()["nomenclature"], selected)
 
     def test_color_keys_for_both_formats(self):
         self.assertEqual(names.color_key_from_label("Low-Alpha"), "Alpha")
@@ -101,6 +160,9 @@ class NomenclatureTests(unittest.TestCase):
         self.assertEqual(names.color_key_from_label("Emik Zeta high"), "Zeta")
         self.assertEqual(names.color_key_from_label("Thaumiel Eta mid"), "Eta")
         self.assertEqual(names.color_key_from_label("CloverWisp Theta mid"), "Theta")
+        self.assertEqual(names.color_key_from_label("Alpha++"), "Alpha")
+        self.assertEqual(names.color_key_from_label("Emik Zeta++"), "Zeta")
+        self.assertEqual(names.color_key_from_label("Thaumiel Eta--"), "Eta")
 
 
 if __name__ == "__main__":

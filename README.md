@@ -42,7 +42,7 @@ On Linux/macOS, it will use Wine if only `src/msd.exe` is available.
 
 [MIT](LICENSE)
 
-## Nomenclature profiles (Default / MMA)
+## Nomenclature profiles (Default / MMA / --/++)
 
 In **Options → Skins → Nomenclature** you can choose:
 
@@ -51,6 +51,13 @@ In **Options → Skins → Nomenclature** you can choose:
   (`low`, `mid/low`, `mid`, `mid/high`, `high`). Its displayed numeric
   scale is shifted by **−0.5** from the original DanielEtterna numeric:
   10.5 = Alpha low, 11.0 = Alpha mid, 11.5 = Beta low.
+- **--/++** — MMA's five subdivisions shown as suffixes, with **no numeric
+  offset**: `low → --`, `mid/low → -`, `mid → (no suffix)`,
+  `mid/high → +`, `high → ++`. Examples: `9.1 → 9--`,
+  `9.5 → 9`, `9.8 → 9++`, `11.8 → Alpha++`.
+  Reform numeric Dans appear as plain numbers. Because Windows prohibits
+  `/` in filenames, the editable JSON is named `PlusMinus.json`; the
+  selector displays `--/++`.
 
 The settings are saved to `%LOCALAPPDATA%\\DanielEtterna\\config.json`.
 On first use, editable profile files are installed to
