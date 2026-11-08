@@ -1,4 +1,4 @@
-"""Regression tests for Default, MMA, and --/++ nomenclatures."""
+"""Regression tests for Default, MMA, --/++, and Mania tracker nomenclatures."""
 import sys
 import tempfile
 import unittest
@@ -82,6 +82,64 @@ class NomenclatureTests(unittest.TestCase):
         self.assertEqual(
             names.apply_nomenclature("Mid-Alpha", 11.8, "--/++"),
             ("Custom Alpha++", 11.8),
+        )
+
+    def test_mania_tracker_is_installed_and_selectable(self):
+        self.assertEqual(
+            names.available_names()[:4],
+            ["Default", "MMA", "--/++", "Mania tracker"],
+        )
+        profile_file = self.folder / "nomenclatures" / "Mania tracker.json"
+        self.assertTrue(profile_file.is_file())
+        profile = names.load_profile("Mania tracker")
+        mma = names.load_profile("MMA")
+        self.assertEqual(profile["name"], "Mania tracker")
+        self.assertEqual(profile["numeric_offset"], 0)
+        self.assertEqual(profile["label_mode"], mma["label_mode"])
+        self.assertEqual(profile["tiers"], mma["tiers"])
+        self.assertEqual(profile["dans"], mma["dans"])
+
+    def test_mania_tracker_matches_mma_names_without_shift(self):
+        examples = [
+            (9.0, ("Reform 9 mid", 9.0)),
+            (9.3, ("Reform 9 high", 9.3)),
+            (9.5, ("Reform 10 low", 9.5)),
+            (10.5, ("Alpha low", 10.5)),
+            (10.7, ("Alpha mid/low", 10.7)),
+            (10.9, ("Alpha mid", 10.9)),
+            (11.0, ("Alpha mid", 11.0)),
+            (11.1, ("Alpha mid/high", 11.1)),
+            (11.3, ("Alpha high", 11.3)),
+            (11.5, ("Beta low", 11.5)),
+            (12.0, ("Beta mid", 12.0)),
+            (16.0, ("Emik Zeta mid", 16.0)),
+            (17.0, ("Thaumiel Eta mid", 17.0)),
+            (18.0, ("CloverWisp Theta mid", 18.0)),
+        ]
+        for numeric, expected in examples:
+            with self.subTest(numeric=numeric):
+                self.assertEqual(
+                    names.apply_nomenclature("Mid-Alpha", numeric, "Mania tracker"),
+                    expected,
+                )
+
+    def test_mania_tracker_selection_is_persistent(self):
+        with patch.object(config_manager, "get_config_path",
+                          return_value=self.folder / "config.json"):
+            cfg = config_manager._merge_defaults({"nomenclature": "Mania tracker"})
+            config_manager.save_config(cfg)
+            self.assertEqual(
+                config_manager.load_config()["nomenclature"], "Mania tracker"
+            )
+
+    def test_mania_tracker_does_not_change_unsupported_ranges(self):
+        self.assertEqual(
+            names.apply_nomenclature("<1st", 0.0, "Mania tracker"),
+            ("<1st", 0.0),
+        )
+        self.assertEqual(
+            names.apply_nomenclature("? ? ? ? ?", "N/A", "Mania tracker"),
+            ("? ? ? ? ?", "N/A"),
         )
 
     def test_default_never_changes_legacy_labels_or_numbers(self):

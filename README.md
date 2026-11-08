@@ -42,7 +42,7 @@ On Linux/macOS, it will use Wine if only `src/msd.exe` is available.
 
 [MIT](LICENSE)
 
-## Nomenclature profiles (Default / MMA / --/++)
+## Nomenclature profiles (Default / MMA / --/++ / Mania tracker)
 
 In **Options → Skins → Nomenclature** you can choose:
 
@@ -58,13 +58,17 @@ In **Options → Skins → Nomenclature** you can choose:
   Reform numeric Dans appear as plain numbers. Because Windows prohibits
   `/` in filenames, the editable JSON is named `PlusMinus.json`; the
   selector displays `--/++`.
+- **Mania tracker** — exactly the same Dan names, five subdivisions,
+  and centered thresholds as MMA, but with **no numeric offset**.
+  Examples: `10.5 → Alpha low`, `11.0 → Alpha mid`,
+  `11.5 → Beta low`. Its editable file is `Mania tracker.json`.
 
 The settings are saved to `%LOCALAPPDATA%\\DanielEtterna\\config.json`.
 On first use, editable profile files are installed to
 `%LOCALAPPDATA%\\DanielEtterna\\nomenclatures\\`. Existing files are never
 overwritten by an update. The source templates are in
 `src/nomenclatures/`. In a one-file executable, Python fallback definitions
-ensure both profiles are available even if JSON files were not bundled.
+ensure all built-in profiles are available even if JSON files were not bundled.
 
 Changing the nomenclature only changes displayed text and the numeric scale;
 it does **not** change the underlying SR calculation. The original Daniel
