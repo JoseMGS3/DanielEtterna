@@ -12,6 +12,7 @@ DEFAULT_CONFIG = {
     "etterna_root": "",
     "language": i18n.DEFAULT_LANGUAGE,
     "layout": "full",
+    "nomenclature": "Default",
     "main_window_geometry": "",
     "window_sizes": {
         "compact": {"width": 550, "height": 102},
@@ -72,6 +73,12 @@ def _merge_defaults(data):
     layout = str(data.get("layout", "full")).strip().lower()
     if layout in ("compact", "statistics", "full"):
         result["layout"] = layout
+
+    # Keep the selected file name across updates. Invalid/missing profiles
+    # are handled safely by the nomenclature manager.
+    nomenclature = data.get("nomenclature")
+    if isinstance(nomenclature, str) and nomenclature.strip():
+        result["nomenclature"] = nomenclature.strip()
 
     # Each layout keeps its own user-defined dimensions.
     saved_sizes = data.get("window_sizes")

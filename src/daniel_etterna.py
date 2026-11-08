@@ -18,6 +18,7 @@ import chart_loader
 import config_manager
 import i18n
 import global_hotkeys
+import nomenclature_manager
 
 from graph_fast import FastGraph
 
@@ -211,6 +212,7 @@ connection_phase = "connecting"
 
 _last_dan_label = "."
 _last_dan_numeric = ""
+_last_sr = None
 current_mode = MODE_NAME_TO_VALUE.get(
     str(APP_CONFIG.get("layout", "full")).strip().lower(),
     MODE_FULL,
@@ -259,6 +261,7 @@ def _set_etterna_root(path_value):
     global current_native_msd
     global current_strain_data
     global current_msd_data
+    global _last_sr
     global gameplay_active
     global gameplay_receive_time
     global menu_receive_time
@@ -314,6 +317,7 @@ def _set_etterna_root(path_value):
     current_native_msd = None
     current_strain_data = None
     current_msd_data = None
+    _last_sr = None
     gameplay_active = False
     gameplay_receive_time = 0.0
     menu_receive_time = 0.0
@@ -937,15 +941,10 @@ def update_dan_text(dan_label, dan_numeric):
         new_bar_color = fill
 
     else:
-        if "-" in dan_label:
-            base = dan_label.split("-", 1)[1]
-        else:
-            base = dan_label
-
-        fill = DAN_COLORS.get(
-            base,
-            "#FFFFFF"
-        )
+        # Both "Low-Alpha" (Default) and "Alpha low" (MMA) use
+        # the same colors, including "Emik Zeta" / "Thaumiel Eta".
+        base = nomenclature_manager.color_key_from_label(dan_label)
+        fill = DAN_COLORS.get(base, "#FFFFFF")
         new_bar_color = fill
 
     bar = draw_accent_bar()
@@ -2032,7 +2031,7 @@ def open_settings(event=None):
     )
 
     # --------------------------------------------------------
-    # SKINS (selectors intentionally have no options yet)
+    # SKINS (nomenclatures enabled; skin selector reserved for later)
     # --------------------------------------------------------
     skins_tab.grid_columnconfigure(0, weight=0, minsize=170)
     skins_tab.grid_columnconfigure(1, weight=1)
@@ -2064,6 +2063,13 @@ def open_settings(event=None):
         foreground=[("readonly", fg)],
     )
 
+    nomenclature_var = tk.StringVar(
+        value=APP_CONFIG.get("nomenclature", "Default")
+    )
+    nomenclature_names = nomenclature_manager.available_names()
+    if nomenclature_var.get() not in nomenclature_names:
+        nomenclature_var.set("Default")
+
     for row_index, label_key in enumerate(
         ("nomenclature_label", "skin_label"), start=1
     ):
@@ -2076,13 +2082,26 @@ def open_settings(event=None):
             anchor="w",
         ).grid(row=row_index, column=0, padx=10, pady=8, sticky="w")
 
-        ttk.Combobox(
-            skins_tab,
-            values=(),
-            state="readonly",
-            font=normal_font,
-            style="DanielEtterna.TCombobox",
-        ).grid(
+        if label_key == "nomenclature_label":
+            selector = ttk.Combobox(
+                skins_tab,
+                textvariable=nomenclature_var,
+                values=nomenclature_names,
+                state="readonly",
+                font=normal_font,
+                style="DanielEtterna.TCombobox",
+            )
+        else:
+            # The Skin selector is still a placeholder.
+            selector = ttk.Combobox(
+                skins_tab,
+                values=(),
+                state="readonly",
+                font=normal_font,
+                style="DanielEtterna.TCombobox",
+            )
+
+        selector.grid(
             row=row_index, column=1,
             padx=(0, 10), pady=8, sticky="ew",
         )
@@ -2762,6 +2781,7 @@ def open_settings(event=None):
         global current_keybinds
         global current_global_hotkeys
         global current_language
+        global _last_dan_label, _last_dan_numeric
         global _settings_window
 
         proposed_language = (
@@ -2833,6 +2853,7 @@ def open_settings(event=None):
             "language": proposed_language,
             "config_version": config_manager.DEFAULT_CONFIG["config_version"],
             "layout": MODE_NAMES[current_mode],
+            "nomenclature": nomenclature_var.get(),
             "main_window_geometry": APP_CONFIG.get("main_window_geometry", ""),
             "window_sizes": dict(APP_CONFIG.get("window_sizes", {})),
             "global_hotkeys": proposed_global_hotkeys,
@@ -2890,6 +2911,10 @@ def open_settings(event=None):
         if connection_phase != "ready":
             _draw_connection_screen()
         else:
+            # Reformat the already computed rating immediately when the
+            # nomenclature changes; no chart reparse or SR recalculation.
+            if _last_sr is not None:
+                _last_dan_label, _last_dan_numeric = get_dan_from_diff(_last_sr)
             update_dan_text(
                 _last_dan_label,
                 _last_dan_numeric,
@@ -4353,6 +4378,7 @@ def calculation_loop():
 
     global _last_dan_label
     global _last_dan_numeric
+    global _last_sr
 
     while True:
 
@@ -4691,13 +4717,9 @@ def calculation_loop():
             )
 
 
-            _last_dan_label = (
-                dan_label
-            )
-
-            _last_dan_numeric = (
-                dan_numeric
-            )
+            _last_dan_label = dan_label
+            _last_dan_numeric = dan_numeric
+            _last_sr = SR
 
 
             print()
@@ -4779,11 +4801,9 @@ def calculation_loop():
             )
 
 
-            _last_dan_label = (
-                "Invalid Beatmap"
-            )
-
+            _last_dan_label = "Invalid Beatmap"
             _last_dan_numeric = ""
+            _last_sr = None
 
 
             with lock:
@@ -4822,7 +4842,7 @@ def _precompute_dan_boundaries():
 _DAN_BOUNDARIES = _precompute_dan_boundaries()
 
 
-def get_dan_from_diff(diff):
+def _get_default_dan_from_diff(diff):
 
     # ========================================================
     # DANS NUMERICOS POR DEBAJO DE ALPHA
@@ -4973,6 +4993,16 @@ def get_dan_from_diff(diff):
 
 
     return "? ? ? ? ?", "N/A"
+
+
+def get_dan_from_diff(diff):
+    """Preserve the legacy algorithm and format only its displayed rating."""
+    default_label, default_numeric = _get_default_dan_from_diff(diff)
+    return nomenclature_manager.apply_nomenclature(
+        default_label,
+        default_numeric,
+        APP_CONFIG.get("nomenclature", "Default"),
+    )
 
 
 # --- Boot ---

@@ -42,6 +42,28 @@ On Linux/macOS, it will use Wine if only `src/msd.exe` is available.
 
 [MIT](LICENSE)
 
+## Nomenclature profiles (Default / MMA)
+
+In **Options → Skins → Nomenclature** you can choose:
+
+- **Default** — the original DanielEtterna labels and numeric ratings, unchanged.
+- **MMA** — Mania Map Analyser's Reform/Greek names and five tiers
+  (`low`, `mid/low`, `mid`, `mid/high`, `high`). Its displayed numeric
+  scale is shifted by **−0.5** from the original DanielEtterna numeric:
+  10.5 = Alpha low, 11.0 = Alpha mid, 11.5 = Beta low.
+
+The settings are saved to `%LOCALAPPDATA%\\DanielEtterna\\config.json`.
+On first use, editable profile files are installed to
+`%LOCALAPPDATA%\\DanielEtterna\\nomenclatures\\`. Existing files are never
+overwritten by an update. The source templates are in
+`src/nomenclatures/`. In a one-file executable, Python fallback definitions
+ensure both profiles are available even if JSON files were not bundled.
+
+Changing the nomenclature only changes displayed text and the numeric scale;
+it does **not** change the underlying SR calculation. The original Daniel
+estimator still ends at Theta; additional MMA names are defined for future
+compatibility, not as support for rating charts above that limit.
+
 ## Theme compatibility
 
 DanielEtterna is currently developed and tested with Rebirth theme.

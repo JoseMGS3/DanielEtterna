@@ -1,4 +1,4 @@
-"""Regression tests for the empty Skins options UI in v1.1.1."""
+"""Regression tests for the Skins tab in DanielEtterna v1.1.1."""
 import ast
 import sys
 import unittest
@@ -21,7 +21,7 @@ class SkinsOptionsTests(unittest.TestCase):
         self.assertEqual(i18n.t("skin_label", "en"), "Skin")
         self.assertEqual(i18n.t("skin_label", "es"), "Skin")
 
-    def test_skins_tab_has_two_empty_readonly_selectors(self):
+    def test_nomenclature_selector_and_empty_skin_selector(self):
         source = (ROOT / "src" / "daniel_etterna.py").read_text(encoding="utf-8")
         module = ast.parse(source)
         settings = next(
@@ -52,8 +52,10 @@ class SkinsOptionsTests(unittest.TestCase):
             ):
                 empty_dropdowns.append(node)
 
-        # This combobox is constructed once for each of the two labels.
+        # The Skin selector remains empty, but Nomenclature is populated.
         self.assertEqual(len(empty_dropdowns), 1)
+        self.assertIn("values=nomenclature_names", source)
+        self.assertIn("textvariable=nomenclature_var", source)
 
 
 if __name__ == "__main__":
