@@ -264,22 +264,29 @@ def apply_nomenclature(default_label, default_numeric, name=DEFAULT_NAME):
             or default_label == "? ? ? ? ?"):
         return default_label, default_numeric
 
-    numeric = round(float(default_numeric) + float(profile["numeric_offset"]), 2)
+    # Offset applies to label classification ONLY, never the displayed
+    # numeric rating. This preserves the original estimator's reading.
+    display_numeric = default_numeric
+    label_numeric = round(float(default_numeric) + float(profile["numeric_offset"]), 2)
     mode = profile["label_mode"]
     # The --/++ profile keeps unshifted integer-based Dan ranges:
     # 9.0–9.2 = 9--, 9.2–9.4 = 9-, 9.4–9.6 = 9,
     # 9.6–9.8 = 9+, 9.8–10.0 = 9++.
-    base = math.floor(numeric) if mode == "suffix" else math.floor(numeric + 0.5)
+    base = (
+        math.floor(label_numeric)
+        if mode == "suffix"
+        else math.floor(label_numeric + 0.5)
+    )
     name_at_base = profile["dans"].get(str(base))
     if name_at_base is None:
         return default_label, default_numeric
 
     tiers = profile["tiers"]
-    position = numeric - (base if mode == "suffix" else base - 0.5)
+    position = label_numeric - (base if mode == "suffix" else base - 0.5)
     index = min(len(tiers) - 1, max(0, math.floor(position * len(tiers) + 1e-9)))
     if mode == "suffix":
-        return f"{name_at_base}{tiers[index]}", numeric
-    return f"{name_at_base} {tiers[index]}", numeric
+        return f"{name_at_base}{tiers[index]}", display_numeric
+    return f"{name_at_base} {tiers[index]}", display_numeric
 
 
 def color_key_from_label(label):

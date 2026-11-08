@@ -1952,12 +1952,14 @@ def open_settings(event=None):
         )
 
         selected.tkraise()
-        if name == "skins" and not nomenclature_selector.get():
-            # Explicitly restore the current entry if Tk left it blank.
-            chosen = nomenclature_var.get()
+        if name == "skins":
+            # Keep pending user changes when switching tabs, but ensure
+            # the readonly field always contains a visible selection.
+            chosen = nomenclature_var.get() or APP_CONFIG.get("nomenclature", "Default")
             if chosen not in nomenclature_names:
                 chosen = "Default"
             nomenclature_selector.current(nomenclature_names.index(chosen))
+            nomenclature_selector.set(chosen)
 
         for tab_name, button in (
             tab_buttons.items()
@@ -2055,18 +2057,26 @@ def open_settings(event=None):
         padx=10, pady=(4, 16), sticky="ew",
     )
 
-    empty_selector_style = ttk.Style(win)
-    empty_selector_style.configure(
+    # Windows native ttk themes may ignore a dark fieldbackground.
+    # The old white text then became invisible on a white field.
+    # Explicitly use a high-contrast light field with dark text for
+    # readonly dropdowns, including when Options is reopened.
+    selector_style = ttk.Style(win)
+    selector_style.configure(
         "DanielEtterna.TCombobox",
-        fieldbackground=entry_bg,
-        background=button_bg,
-        foreground=fg,
-        arrowcolor=fg,
+        fieldbackground="#FFFFFF",
+        background="#FFFFFF",
+        foreground="#111111",
+        arrowcolor="#111111",
+        selectbackground="#FFFFFF",
+        selectforeground="#111111",
     )
-    empty_selector_style.map(
+    selector_style.map(
         "DanielEtterna.TCombobox",
-        fieldbackground=[("readonly", entry_bg)],
-        foreground=[("readonly", fg)],
+        fieldbackground=[("readonly", "#FFFFFF")],
+        foreground=[("readonly", "#111111")],
+        selectforeground=[("readonly", "#111111")],
+        selectbackground=[("readonly", "#FFFFFF")],
     )
 
     # Use an explicit Tk master and set the combobox index. The previous
@@ -2102,6 +2112,7 @@ def open_settings(event=None):
             nomenclature_selector.current(
                 nomenclature_names.index(selected_nomenclature)
             )
+            nomenclature_selector.set(selected_nomenclature)
         else:
             # The Skin selector is still a placeholder.
             selector = ttk.Combobox(

@@ -64,6 +64,15 @@ class SkinsOptionsTests(unittest.TestCase):
         self.assertIn('skins_save_button = tk.Button(', source)
         self.assertIn('skins_cancel_button = tk.Button(', source)
         self.assertIn('nomenclature_selector.current(nomenclature_names.index(chosen))', source)
+        self.assertIn('nomenclature_selector.set(selected_nomenclature)', source)
+        self.assertIn('nomenclature_selector.set(chosen)', source)
+
+    def test_readonly_selector_uses_visible_dark_text_on_light_field(self):
+        source = (ROOT / "src" / "daniel_etterna.py").read_text(encoding="utf-8")
+        self.assertIn('fieldbackground="#FFFFFF"', source)
+        self.assertIn('foreground="#111111"', source)
+        self.assertIn('foreground=[("readonly", "#111111")]', source)
+        self.assertIn('selectforeground=[("readonly", "#111111")]', source)
 
 
 if __name__ == "__main__":

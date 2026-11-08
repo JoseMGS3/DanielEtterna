@@ -49,8 +49,10 @@ In **Options → Skins → Nomenclature** you can choose:
 - **Default** — the original DanielEtterna labels and numeric ratings, unchanged.
 - **MMA** — Mania Map Analyser's Reform/Greek names and five tiers
   (`low`, `mid/low`, `mid`, `mid/high`, `high`). Its displayed numeric
-  scale is shifted by **−0.5** from the original DanielEtterna numeric:
-  10.5 = Alpha low, 11.0 = Alpha mid, 11.5 = Beta low.
+  label classification is shifted by **−0.5**, but the numeric rating
+  shown next to the Dan remains **exactly the original value**.
+  Example: original 11.0 is displayed as `Alpha low (11.0)`, not
+  `Alpha low (10.5)`.
 - **--/++** — MMA's five subdivisions shown as suffixes, with **no numeric
   offset**: `low → --`, `mid/low → -`, `mid → (no suffix)`,
   `mid/high → +`, `high → ++`. Examples: `9.1 → 9--`,
@@ -70,8 +72,8 @@ overwritten by an update. The source templates are in
 `src/nomenclatures/`. In a one-file executable, Python fallback definitions
 ensure all built-in profiles are available even if JSON files were not bundled.
 
-Changing the nomenclature only changes displayed text and the numeric scale;
-it does **not** change the underlying SR calculation. The original Daniel
+Changing the nomenclature only changes the Dan label; it leaves the numeric
+rating and the underlying SR calculation unchanged. The original Daniel
 estimator still ends at Theta; additional MMA names are defined for future
 compatibility, not as support for rating charts above that limit.
 

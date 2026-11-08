@@ -154,18 +154,18 @@ class NomenclatureTests(unittest.TestCase):
             self.assertEqual(names.apply_nomenclature(label, numeric, "Default"),
                              (label, numeric))
 
-    def test_mma_is_shifted_by_half_dan(self):
+    def test_mma_offsets_only_labels_never_the_displayed_rating(self):
         examples = [
-            (11.0, ("Alpha low", 10.5)),
-            (11.2, ("Alpha mid/low", 10.7)),
-            (11.4, ("Alpha mid", 10.9)),
-            (11.5, ("Alpha mid", 11.0)),
-            (11.6, ("Alpha mid/high", 11.1)),
-            (11.8, ("Alpha high", 11.3)),
-            (12.0, ("Beta low", 11.5)),
-            (12.5, ("Beta mid", 12.0)),
-            (17.5, ("Thaumiel Eta mid", 17.0)),
-            (18.5, ("CloverWisp Theta mid", 18.0)),
+            (11.0, ("Alpha low", 11.0)),
+            (11.2, ("Alpha mid/low", 11.2)),
+            (11.4, ("Alpha mid", 11.4)),
+            (11.5, ("Alpha mid", 11.5)),
+            (11.6, ("Alpha mid/high", 11.6)),
+            (11.8, ("Alpha high", 11.8)),
+            (12.0, ("Beta low", 12.0)),
+            (12.5, ("Beta mid", 12.5)),
+            (17.5, ("Thaumiel Eta mid", 17.5)),
+            (18.5, ("CloverWisp Theta mid", 18.5)),
         ]
         for default_numeric, expected in examples:
             with self.subTest(default_numeric=default_numeric):
@@ -192,7 +192,7 @@ class NomenclatureTests(unittest.TestCase):
         self.assertEqual(mma_file.read_text(encoding="utf-8"), edited)
         self.assertEqual(
             names.apply_nomenclature("Mid-Zeta", 16.5, "MMA"),
-            ("Custom Zeta mid", 16.0),
+            ("Custom Zeta mid", 16.5),
         )
 
     def test_corrupt_file_falls_back_without_crashing(self):
@@ -200,7 +200,7 @@ class NomenclatureTests(unittest.TestCase):
         (self.folder / "nomenclatures" / "MMA.json").write_text("{", encoding="utf-8")
         self.assertEqual(
             names.apply_nomenclature("Low-Alpha", 11.0, "MMA"),
-            ("Alpha low", 10.5),
+            ("Alpha low", 11.0),
         )
 
     def test_config_roundtrip_preserves_selected_nomenclature(self):
