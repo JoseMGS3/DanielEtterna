@@ -44,13 +44,15 @@ Other themes may be compatible, but their `ScreenSelectMusic` and `ScreenGamepla
 pip install -r requirements.txt
 ```
 
-2. Execute `build_windows.bat`. It converts the 50 numbered SVGs to PNG and generates `dist/DanielEtterna.exe` all ready.
+2. On `main`/1.1.1, `build_windows.bat` converts the 50 numbered SVGs to PNG and builds `dist/DanielEtterna.exe`. On experimental `2.0-dev`, the script **also compiles and packages XDC1**, requiring Visual Studio Build Tools (C++).
 
-   If you prefer to build manually, run the following in the root:
+   If you prefer to build manually, run the following in the root.
+   On `2.0-dev`, first run `build_xdc1.bat` to compile the new C++ engine:
 
 ```cmd
+build_xdc1.bat
 py scripts/prepare_reform_png.py
-pyinstaller --clean --noconfirm --onefile --windowed --name DanielEtterna --icon "src/icon.ico" --add-data "src/icon.ico;." --add-data "src/nomenclatures/images;nomenclatures/images" src/daniel_etterna.py
+pyinstaller --clean --noconfirm --onefile --windowed --name DanielEtterna --icon "src/icon.ico" --add-data "src/icon.ico;." --add-data "src/nomenclatures/images;nomenclatures/images" --add-data "src/xdc1.exe;." src/daniel_etterna.py
 ```
 
    To keep the debug console, remove `--windowed`.
