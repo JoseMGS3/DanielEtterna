@@ -141,6 +141,45 @@ BUILTIN_PROFILES = json.loads(r'''{
       "-2": "Intro 1",
       "-1": "Intro 2"
     }
+  },
+  "Images": {
+    "schema_version": 1,
+    "id": "Images",
+    "name": "Images",
+    "label_mode": "interval",
+    "numeric_offset": 0,
+    "tiers": [
+      "low",
+      "mid/low",
+      "mid",
+      "mid/high",
+      "high"
+    ],
+    "dans": {
+      "0": "Intro 3",
+      "1": "Reform 1",
+      "2": "Reform 2",
+      "3": "Reform 3",
+      "4": "Reform 4",
+      "5": "Reform 5",
+      "6": "Reform 6",
+      "7": "Reform 7",
+      "8": "Reform 8",
+      "9": "Reform 9",
+      "10": "Reform 10",
+      "11": "Alpha",
+      "12": "Beta",
+      "13": "Gamma",
+      "14": "Delta",
+      "15": "Epsilon",
+      "16": "Emik Zeta",
+      "17": "Thaumiel Eta",
+      "18": "CloverWisp Theta",
+      "19": "Iota",
+      "20": "Kappa",
+      "-2": "Intro 1",
+      "-1": "Intro 2"
+    }
   }
 }''')
 _VALID_FILENAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9 _-]{0,63}\Z")
@@ -148,9 +187,56 @@ _VALID_FILENAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9 _-]{0,63}\Z")
 # nomenclature title while using a portable JSON filename.
 _DISPLAY_TO_FILENAME = {"--/++": "PlusMinus"}
 
+_IMAGE_CODES = {
+    **{i: str(i) for i in range(1, 11)},
+    **dict(enumerate((
+        "alpha", "beta", "gamma", "delta", "epsilon",
+        "zeta", "eta", "theta", "iota", "kappa",
+    ), start=11)),
+}
+_IMAGE_TIERS = ("-low", "-mid-low", "", "-mid-high", "-high")
+
 
 def nomenclatures_dir():
     return config_manager.get_config_dir() / "nomenclatures"
+
+
+def images_dir():
+    """Writable folder for images uploaded after installation."""
+    return nomenclatures_dir() / "images"
+
+
+def _bundled_images_dir():
+    """Repository folder in source, bundled folder in PyInstaller."""
+    import sys
+    root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+    return root / "nomenclatures" / "images"
+
+
+def image_asset_filename(dp):
+    """Five subdivisions per integer Dan; never modifies the original DP."""
+    if isinstance(dp, bool) or not isinstance(dp, (int, float)) or not math.isfinite(dp):
+        return None
+    value = round(float(dp), 2)
+    level = math.floor(value)
+    code = _IMAGE_CODES.get(level)
+    if code is None:
+        return None
+    bucket = max(0, min(4, math.floor((value - level) * 5 + 1e-9)))
+    ext = "svg" if level <= 10 else "webp"
+    return f"{code}{_IMAGE_TIERS[bucket]}.{ext}"
+
+
+def image_asset_path(dp):
+    """Prefer local user images; fall back to source/bundled assets."""
+    name = image_asset_filename(dp)
+    if name is None:
+        return None
+    for folder in (images_dir(), _bundled_images_dir()):
+        target = folder / name
+        if target.is_file():
+            return target
+    return None
 
 
 def _valid_name(name):
@@ -202,6 +288,7 @@ def ensure_builtin_files():
     folder = nomenclatures_dir()
     try:
         folder.mkdir(parents=True, exist_ok=True)
+        images_dir().mkdir(parents=True, exist_ok=True)
         for name in BUILTIN_PROFILES:
             target = folder / (name + ".json")
             if not target.exists():
@@ -226,7 +313,7 @@ def available_names():
     except OSError:
         pass
     # Display labels need not be valid filenames (e.g. "--/++").
-    builtin_labels = ["Default", "MMA", "--/++", "Mania tracker"]
+    builtin_labels = ["Default", "MMA", "--/++", "Mania tracker", "Images"]
     return builtin_labels + sorted(names - set(BUILTIN_PROFILES))
 
 
