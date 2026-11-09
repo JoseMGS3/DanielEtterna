@@ -22,9 +22,10 @@ class NormalizedChartTests(unittest.TestCase):
         return loader.load_chart_file(target)
 
     def sm(self, rows, timing=""):
+        bpm = "" if "#BPMS:" in timing else "#BPMS:0=120;\n"
         return self.write(
             "sample.sm",
-            "#TITLE:Example;\n#BPMS:0=120;\n" + timing
+            "#TITLE:Example;\n" + bpm + timing
             + "\n#NOTES:dance-single::Hard:10:0,0,0,0,0:\n"
             + rows + "\n;\n",
         )
