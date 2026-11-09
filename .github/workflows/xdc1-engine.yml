@@ -1,0 +1,31 @@
+name: XDC1 native engine integration (2.0-dev)
+
+on:
+  push:
+    branches: [2.0-dev]
+  workflow_dispatch:
+
+jobs:
+  xdc1:
+    name: XDC1 C++ and Python on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile XDC1 with g++
+        if: runner.os == 'Linux'
+        run: g++ -O2 -std=c++17 -Wall -Wextra xdc1/xdc1.cpp -o src/xdc1
+      - name: Compile XDC1 with MSVC
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: build_xdc1.bat
+      - name: Run native C++ engine through Python
+        run: python -m unittest discover -s tests -p "test_xdc1_adapter.py" -v
+      - name: Verify normalization remains compatible
+        run: python -m unittest discover -s tests -p "test_chart_normalization.py" -v
