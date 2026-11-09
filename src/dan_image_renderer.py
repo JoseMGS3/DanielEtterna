@@ -23,14 +23,22 @@ def load_dan_image(path, height, master=None):
 
     try:
         if source.suffix.lower() == ".svg":
-            import cairosvg
-            # Render larger than the target: original SVG viewBoxes
-            # include large transparent margins around the actual glyph.
-            png = cairosvg.svg2png(
-                bytestring=source.read_bytes(),
-                output_height=max(256, height * 4),
-            )
-            art = Image.open(BytesIO(png)).convert("RGBA")
+            # Used when a numbered Dan PNG has not been generated yet.
+            # svg2png-py has Windows binary wheels and needs no Cairo DLL.
+            try:
+                import svg2png_py
+                png = svg2png_py.svg_to_png(
+                    source.read_text(encoding="utf-8"),
+                    svg2png_py.FontDatabase(),
+                )
+            except (ImportError, OSError, ValueError, RuntimeError):
+                # Optional compatibility with existing CairoSVG setups.
+                import cairosvg
+                png = cairosvg.svg2png(
+                    bytestring=source.read_bytes(),
+                    output_height=max(256, height * 4),
+                )
+            art = Image.open(BytesIO(bytes(png))).convert("RGBA")
         elif source.suffix.lower() in (".webp", ".png"):
             with Image.open(source) as original:
                 art = original.convert("RGBA")
@@ -46,7 +54,8 @@ def load_dan_image(path, height, master=None):
             width = max(1, round(art.width * height / art.height))
             art = art.resize((width, height), Image.Resampling.LANCZOS)
         photo = ImageTk.PhotoImage(art, master=master)
-    except Exception:
+    except Exception as exc:
+        print(f"[Images] Could not render {source.name}: {exc}")
         return None
 
     _IMAGE_CACHE[key] = photo
