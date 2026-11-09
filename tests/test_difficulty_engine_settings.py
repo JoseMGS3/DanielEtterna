@@ -114,7 +114,7 @@ class DifficultyEngineSettingsTests(unittest.TestCase):
         self.assertEqual((label, numeric), ("Mid-Iota", 19.5))
         label, numeric = scope["_get_xdc1_default_dan_from_diff"](19.60)
         self.assertEqual((label, numeric), ("Mid-Kappa", 20.5))
-        label, numeric = scope["_get_xdc1_default_dan_from_diff"](0.0)
+        label, numeric = scope["_get_xdc1_default_dan_from_diff"](-4.0)
         self.assertEqual(label, "<1st")
 
 
