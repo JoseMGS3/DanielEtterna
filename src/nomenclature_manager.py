@@ -206,11 +206,48 @@ def images_dir():
     return nomenclatures_dir() / "images"
 
 
-def _bundled_images_dir():
-    """Repository folder in source, bundled folder in PyInstaller."""
+def image_asset_directories():
+    """Look for user uploads, repository assets and bundled EXE resources."""
     import sys
-    root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
-    return root / "nomenclatures" / "images"
+
+    roots = []
+    if getattr(sys, "frozen", False):
+        exe_folder = Path(sys.executable).resolve().parent
+        roots.extend((exe_folder, exe_folder.parent))
+    bundle = getattr(sys, "_MEIPASS", None)
+    if bundle:
+        roots.append(Path(bundle))
+    roots.append(Path(__file__).resolve().parent)
+
+    candidates = [images_dir()]
+    for root in roots:
+        candidates.extend((
+            root / "nomenclatures" / "images",
+            root / "src" / "nomenclatures" / "images",
+        ))
+    seen = set()
+    result = []
+    for folder in candidates:
+        folder = folder.resolve()
+        if folder not in seen:
+            seen.add(folder)
+            result.append(folder)
+    return tuple(result)
+
+
+def image_asset_status():
+    """Number of supported rank files visible to the running app."""
+    folders = image_asset_directories()
+    found = 0
+    total = 0
+    for level, code in _IMAGE_CODES.items():
+        extension = ".svg" if level <= 10 else ".webp"
+        for suffix in _IMAGE_TIERS:
+            total += 1
+            filename = f"{code}{suffix}{extension}"
+            if any((folder / filename).is_file() for folder in folders):
+                found += 1
+    return found, total
 
 
 def image_asset_filename(dp):
@@ -232,7 +269,7 @@ def image_asset_path(dp):
     name = image_asset_filename(dp)
     if name is None:
         return None
-    for folder in (images_dir(), _bundled_images_dir()):
+    for folder in image_asset_directories():
         target = folder / name
         if target.is_file():
             return target

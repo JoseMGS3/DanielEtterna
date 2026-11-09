@@ -2235,12 +2235,59 @@ def open_settings(event=None):
         )
     _refresh_nomenclature_cards()
 
-    tk.Label(
+    # Report paths visible to this running build, not only to GitHub.
+    image_status_row = tk.Frame(skins_tab, bg=BG_COLOR)
+    image_status_row.grid(row=3, column=0, padx=10, pady=(6, 0), sticky="ew")
+    image_status_row.grid_columnconfigure(0, weight=1)
+
+    def _refresh_images_status():
+        found, total = nomenclature_manager.image_asset_status()
+        assets_status_label.configure(
+            text=tr("images_detected", found=found, total=total),
+            fg="#8BDEA6" if found == total else "#FFC783",
+        )
+
+    def _open_images_folder():
+        folder = nomenclature_manager.images_dir()
+        folder.mkdir(parents=True, exist_ok=True)
+        try:
+            if os.name == "nt":
+                os.startfile(str(folder))
+            else:
+                import subprocess
+                subprocess.Popen(
+                    ["open" if sys.platform == "darwin" else "xdg-open",
+                     str(folder)],
+                )
+        except (OSError, ValueError) as exc:
+            messagebox.showerror(
+                tr("images_open_folder_error"), str(exc), parent=win,
+            )
+        _refresh_images_status()
+
+    assets_status_label = tk.Label(
+        image_status_row, bg=BG_COLOR, fg=muted, font=small_font, anchor="w",
+    )
+    assets_status_label.grid(row=0, column=0, sticky="w")
+
+    images_open_button = tk.Button(
+        image_status_row, text=tr("images_open_folder"),
+        command=_open_images_folder, bg=button_bg, fg=fg,
+        activebackground="#333333", activeforeground=fg,
+        relief="flat", bd=0, font=small_font, padx=12, pady=3,
+    )
+    images_open_button.grid(row=0, column=1, padx=(10, 0), sticky="e")
+
+    images_folder_hint = tk.Label(
         skins_tab,
-        text=tr("image_assets_hint", path="src/nomenclatures/images/"),
-        bg=BG_COLOR, fg=muted, font=tiny_font,
-        anchor="w",
-    ).grid(row=3, column=0, padx=10, pady=(6, 0), sticky="ew")
+        text=tr("image_assets_hint", path=str(nomenclature_manager.images_dir())),
+        bg=BG_COLOR, fg=muted, font=tiny_font, anchor="w",
+        justify="left", wraplength=520,
+    )
+    images_folder_hint.grid(
+        row=4, column=0, padx=10, pady=(5, 0), sticky="ew",
+    )
+    _refresh_images_status()
 
     # --------------------------------------------------------
     # LAYOUT RESPONSIVE - GENERAL

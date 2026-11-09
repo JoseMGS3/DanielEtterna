@@ -116,10 +116,40 @@ class NomenclatureTests(unittest.TestCase):
 
     def test_images_local_upload_folder_is_used(self):
         names.ensure_builtin_files()
-        self.assertIsNone(names.image_asset_path(12.08))
-        path = names.images_dir() / "beta-low.webp"
-        path.write_bytes(b"example")
-        self.assertEqual(names.image_asset_path(12.08), path)
+        with patch.object(names, "image_asset_directories",
+                          return_value=(names.images_dir(),)):
+            self.assertIsNone(names.image_asset_path(12.08))
+            path = names.images_dir() / "beta-low.webp"
+            path.write_bytes(b"example")
+            self.assertEqual(names.image_asset_path(12.08), path)
+
+    def test_images_status_counts_expected_files(self):
+        names.ensure_builtin_files()
+        with patch.object(names, "image_asset_directories",
+                          return_value=(names.images_dir(),)):
+            self.assertEqual(names.image_asset_status(), (0, 100))
+            (names.images_dir() / "beta-low.webp").write_bytes(b"x")
+            (names.images_dir() / "10.svg").write_text("<svg/>")
+            (names.images_dir() / "unrelated.png").write_bytes(b"x")
+            self.assertEqual(names.image_asset_status(), (2, 100))
+
+    def test_images_executable_and_checkout_search_paths(self):
+        with patch.object(sys, "frozen", True, create=True), patch.object(
+            sys, "executable", str(self.folder / "dist" / "DanielEtterna.exe")
+        ), patch.object(
+            sys, "_MEIPASS", str(self.folder / "bundle"), create=True
+        ):
+            dirs = names.image_asset_directories()
+            self.assertEqual(dirs[0], names.images_dir().resolve())
+            self.assertIn(
+                (self.folder / "dist" / "nomenclatures" / "images").resolve(), dirs
+            )
+            self.assertIn(
+                (self.folder / "src" / "nomenclatures" / "images").resolve(), dirs
+            )
+            self.assertIn(
+                (self.folder / "bundle" / "nomenclatures" / "images").resolve(), dirs
+            )
 
     def test_mania_tracker_is_installed_and_selectable(self):
         self.assertEqual(

@@ -58,6 +58,9 @@ class SkinsOptionsTests(unittest.TestCase):
         self.assertIn("if dan_photo is not None:", source)
         self.assertIn("None if dan_photo is not None else dan_items[-1]", source)
         self.assertIn("if text_item is not None:", source)
+        self.assertIn("nomenclature_manager.image_asset_status()", source)
+        self.assertIn("command=_open_images_folder,", source)
+        self.assertIn("str(nomenclature_manager.images_dir())", source)
 
     def test_selection_persists_only_on_save(self):
         source = self.source()
