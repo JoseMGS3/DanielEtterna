@@ -81,12 +81,15 @@ In **Options → Skins → Nomenclature** you can choose:
   The Skins menu now reports how many images are visible to this running
   copy of the application and includes an **Open images folder** button.
   It also checks folders next to the executable and a nearby Git checkout.
-  SVG (Dans 1–10) needs CairoSVG and its Cairo backend, whereas Greek
-  WebP files use Pillow.
+  The Windows build first converts numbered Dans (1–10) from SVG to PNG
+  using the Windows-compatible `svg2png-py` renderer (no native Cairo DLL).
+  At runtime, Pillow loads these generated PNGs and the Greek WebP badges.
+  The original SVG files are preserved. When running directly from Python
+  without generated PNGs, the application can render SVGs using svg2png-py.
 
   Build from the repository root with `build_windows.bat`. The included
-  batch script packages the 100 files automatically. An EXE compiled
-  before they were uploaded will not gain them just by updating GitHub.
+  batch script creates 50 PNG images and packages those alongside the
+  100 original SVG/WebP files. You must rebuild an older EXE to get them.
 
 The settings are saved to `%LOCALAPPDATA%\\DanielEtterna\\config.json`.
 On first use, editable profile files are installed to
@@ -115,11 +118,13 @@ pip install -r requirements.txt
 ```
 
 2. From the **repository root**, double-click `build_windows.bat`.
-   It generates `dist/DanielEtterna.exe` with the Reform image assets.
+   It installs the Windows SVG renderer, converts the 50 numbered SVGs to
+   PNG and generates `dist/DanielEtterna.exe` with all rank artwork.
 
    If you prefer to build manually, run the following in the root:
 
 ```cmd
+py scripts/prepare_reform_png.py
 pyinstaller --clean --noconfirm --onefile --windowed --name DanielEtterna --icon "src/icon.ico" --add-data "src/icon.ico;." --add-data "src/nomenclatures/images;nomenclatures/images" src/daniel_etterna.py
 ```
 
