@@ -86,3 +86,6 @@ DanielGameplay.txt
 *.log
 *.orig
 *.rej
+
+# Build-time numbered Reform PNGs; original SVGs remain versioned.
+/src/nomenclatures/images/*.png
