@@ -19,7 +19,7 @@ if errorlevel 1 (
         )
     )
     if not defined VCVARS (
-        echo ERROR: MSVC C++ Build Tools not found (Visual Studio 2022/2026).
+        echo ERROR: MSVC C++ Build Tools not found. Supports VS 2022 and 2026.
         echo Install Visual Studio Build Tools with Desktop development with C++.
         exit /b 1
     )
