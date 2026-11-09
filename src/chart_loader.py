@@ -124,7 +124,17 @@ def load_osu(path):
     return {
         "format": "osu",
         "keycount": keycount,
+        # Preserve the legacy two-field notes for DanielEtterna 1.1.1.
         "notes": notes,
+        # New 2.0 pipeline: (column, head_ms, tail_ms), -1 means tap.
+        # The osu parser already exposes heads, ends and hit object types.
+        "normalized_notes": [
+            (int(column), int(head),
+             int(tail) if int(kind) & 128 else -1)
+            for column, head, tail, kind in zip(
+                p[1], p[2], p[3], p[4]
+            )
+        ],
         "od": od,
         "charts": None,
         "timing": None,
@@ -907,3 +917,156 @@ def load_chart_file(path):
     raise ValueError(
         f"Formato no soportado: {extension}"
     )
+
+
+# ============================================================
+# 2.0 CHART NORMALIZATION — NOT WIRED INTO THE LEGACY CALCULATOR
+# ============================================================
+
+def _stepmania_hold_events(note_data):
+    """Parse playable 4K rows as (column, head_beat, tail_beat).
+
+    A tap uses tail=-1. Holds (2) and rolls (4) end at 3, potentially
+    in a later measure. Mines, lifts and fake notes are not playable
+    presses for XDC1, and are deliberately excluded. Reject malformed
+    hold pairs instead of silently producing incorrect ratings.
+    """
+    active = {}  # column -> start beat
+    notes = []
+    for beat, row in _parse_sm_rows(note_data):
+        if len(row) != 4:
+            raise ValueError("Only 4K StepMania charts are supported")
+        for column, raw_symbol in enumerate(row):
+            symbol = raw_symbol.upper()
+            if symbol == "1":
+                if column in active:
+                    raise ValueError(
+                        f"Tap overlaps an active hold in column {column}"
+                    )
+                notes.append((column, beat, -1))
+            elif symbol in ("2", "4"):
+                if column in active:
+                    raise ValueError(
+                        f"Overlapping holds in column {column}"
+                    )
+                active[column] = beat
+            elif symbol == "3":
+                if column not in active:
+                    raise ValueError(
+                        f"Orphan hold tail in column {column}"
+                    )
+                head_beat = active.pop(column)
+                notes.append((column, head_beat, beat))
+            elif symbol not in ("0", "M", "L", "F"):
+                raise ValueError(
+                    f"Unsupported StepMania note type: {raw_symbol!r}"
+                )
+
+    if active:
+        raise ValueError(
+            "Unclosed hold/roll in columns: "
+            + ", ".join(str(k) for k in sorted(active))
+        )
+    return sorted(notes, key=lambda n: (n[1], n[0]))
+
+
+def _normalize_stepmania_chart(data, chart):
+    """Normalize one selected SM/SSC chart with its effective timing.
+
+    WARPS remain explicitly unsupported. There is no approximation:
+    they can remove beats and change which notes actually play.
+    """
+    if chart is None:
+        raise ValueError("Select an individual StepMania chart first")
+    if data["format"] == "sm":
+        timing = data
+    else:
+        # SSC overrides global BPM, stop, delay, offset and warp data.
+        timing = chart
+
+    if timing.get("warps"):
+        raise NotImplementedError(
+            "Charts containing #WARPS are not yet supported; "
+            "normalization would produce incorrect note timing"
+        )
+
+    events = _stepmania_hold_events(chart["note_data"])
+
+    def beat_ms(beat):
+        return int(round(1000.0 * _beat_to_seconds(
+            beat=beat,
+            bpms=timing["bpms"],
+            stops=timing["stops"],
+            delays=timing["delays"],
+            offset=timing["offset"],
+        )))
+
+    notes = []
+    for column, head_beat, tail_beat in events:
+        head_ms = beat_ms(head_beat)
+        tail_ms = beat_ms(tail_beat) if tail_beat >= 0 else -1
+        if tail_beat >= 0 and tail_ms < head_ms:
+            raise ValueError(
+                f"Hold has a negative duration in column {column}"
+            )
+        notes.append((column, head_ms, tail_ms))
+    return sorted(notes, key=lambda n: (n[1], n[0]))
+
+
+def normalize_chart_notes(data, chart=None):
+    """Return 4K notes as (column, start_ms, end_ms), -1 for taps.
+
+    Input is a dictionary returned by load_chart_file(). For SM/SSC
+    pass the selected chart dictionary, not the entire list of charts.
+    All times are absolute song timestamps before playback rate scaling.
+    A negative start caused by OFFSET is preserved for the XDC1 adapter
+    to shift forward, along with all note ends, when necessary.
+
+    This API is additive. Existing data["notes"] and the
+    convert_stepmania_chart() legacy output remain two-field tuples.
+    """
+    fmt = data.get("format")
+    if fmt == "osu":
+        if data.get("keycount") != 4:
+            raise ValueError("XDC1 only supports 4K charts")
+        notes = list(data["normalized_notes"])
+    elif fmt in ("sm", "ssc"):
+        notes = _normalize_stepmania_chart(data, chart)
+    else:
+        raise ValueError(f"Unsupported chart format: {fmt}")
+
+    for column, head, tail in notes:
+        if not 0 <= column < 4:
+            raise ValueError(f"Invalid 4K column: {column}")
+        if tail != -1 and tail < head:
+            raise ValueError(
+                f"Hold end is earlier than its start: {head}, {tail}"
+            )
+    return sorted(notes, key=lambda n: (n[1], n[0]))
+
+
+def rate_normalized_notes(notes, rate=1.0, include_long_notes=True):
+    """Apply Etterna's clock rate to normalized notes for future XDC1.
+
+    XDC1 consumes integer milliseconds and treats tail=-1 as a tap.
+    The caller must shift any negative heads before invoking XDC1;
+    do not clip them here, as clipping changes the note intervals.
+    This function does not change the legacy 1.1.1 calculation path.
+    """
+    import math
+
+    if not math.isfinite(rate) or rate <= 0:
+        raise ValueError("Chart rate must be a positive finite number")
+
+    result = []
+    for column, head, tail in notes:
+        new_head = math.floor(head / rate)
+        new_tail = (
+            math.floor(tail / rate)
+            if include_long_notes and tail != -1
+            else -1
+        )
+        if new_tail != -1 and new_tail < new_head:
+            new_tail = -1
+        result.append((column, new_head, new_tail))
+    return sorted(result, key=lambda n: (n[1], n[0]))
