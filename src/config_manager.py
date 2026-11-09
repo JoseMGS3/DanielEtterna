@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from copy import deepcopy
 from pathlib import Path
 
@@ -7,10 +8,17 @@ import i18n
 
 
 DEFAULT_CONFIG = {
-    "config_version": 6,
+    "config_version": 8,
     "etterna_root": "",
     "language": i18n.DEFAULT_LANGUAGE,
     "layout": "full",
+    "nomenclature": "Default",
+    "main_window_geometry": "",
+    "window_sizes": {
+        "compact": {"width": 550, "height": 72},
+        "statistics": {"width": 650, "height": 116},
+        "full": {"width": 650, "height": 407},
+    },
     "global_hotkeys": False,
     "settings_window_size": {
         "width": 680,
@@ -40,6 +48,30 @@ def get_config_path():
     return get_config_dir() / "config.json"
 
 
+# Dimensions used before v8. Only known 50/75/100% presets are migrated,
+# preserving genuinely custom sizes selected by the user.
+_LEGACY_LAYOUT_SIZES = {
+    "compact": (550, 102),
+    "statistics": (650, 157),
+}
+_LEGACY_PRESET_SCALES = (0.5, 0.75, 1.0)
+
+
+def _migrate_legacy_preset_size(layout, width, height, source_version):
+    if source_version >= 8 or layout not in _LEGACY_LAYOUT_SIZES:
+        return width, height
+    old_width, old_height = _LEGACY_LAYOUT_SIZES[layout]
+    new_height = DEFAULT_CONFIG["window_sizes"][layout]["height"]
+    for scale in _LEGACY_PRESET_SCALES:
+        old_size = (
+            int(old_width * scale + 0.5),
+            int(old_height * scale + 0.5),
+        )
+        if (width, height) == old_size:
+            return width, int(new_height * scale + 0.5)
+    return width, height
+
+
 def _merge_defaults(data):
     result = deepcopy(DEFAULT_CONFIG)
 
@@ -65,6 +97,48 @@ def _merge_defaults(data):
     layout = str(data.get("layout", "full")).strip().lower()
     if layout in ("compact", "statistics", "full"):
         result["layout"] = layout
+
+    # Keep the selected file name across updates. Invalid/missing profiles
+    # are handled safely by the nomenclature manager.
+    nomenclature = data.get("nomenclature")
+    if isinstance(nomenclature, str) and nomenclature.strip():
+        result["nomenclature"] = nomenclature.strip()
+
+    # Each layout keeps its own user-defined dimensions.
+    saved_sizes = data.get("window_sizes")
+    if isinstance(saved_sizes, dict):
+        for name, defaults in result["window_sizes"].items():
+            incoming = saved_sizes.get(name)
+            if not isinstance(incoming, dict):
+                continue
+            try:
+                width = int(incoming["width"])
+                height = int(incoming["height"])
+            except (KeyError, ValueError, TypeError, OverflowError):
+                continue
+            width, height = _migrate_legacy_preset_size(
+                name, width, height, source_version
+            )
+            result["window_sizes"][name] = {
+                "width": max(int(defaults["width"] * 0.5 + 0.5), min(width, 3840)),
+                "height": max(int(defaults["height"] * 0.5 + 0.5), min(height, 2160)),
+            }
+
+    # Stored by Tk itself, so negative multi-monitor coordinates survive.
+    window_geometry = data.get("main_window_geometry")
+    if isinstance(window_geometry, str) and re.fullmatch(
+        r"\d+x\d+(?:[+-]-?\d+[+-]-?\d+)?", window_geometry
+    ):
+        # The active window's saved geometry can otherwise restore an old
+        # oversized preset even after updating window_sizes.
+        match = re.match(r"(\d+)x(\d+)(.*)", window_geometry)
+        width, height = int(match.group(1)), int(match.group(2))
+        _, migrated_height = _migrate_legacy_preset_size(
+            result["layout"], width, height, source_version
+        )
+        result["main_window_geometry"] = (
+            f"{width}x{migrated_height}{match.group(3)}"
+        )
 
     global_hotkeys = data.get("global_hotkeys")
     if isinstance(global_hotkeys, bool):

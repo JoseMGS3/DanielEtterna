@@ -65,12 +65,32 @@ class FastGraph:
         self._last_split_px = -1
         self._visible = True
         self._pause_line_items = []
+        self._data_dirty = False
+        self._images_dirty = False
+        self._last_position = None
 
     # --- Public API ---
 
     def set_data(self, times, strain):
+        # Keep the most recent chart, but defer expensive polygon/image
+        # generation until the graph is actually visible (Full layout).
         self._times = np.asarray(times, dtype=float)
         self._strain = np.asarray(strain, dtype=float)
+        self._data_dirty = True
+        self._last_split_px = -1
+        self.clear_all_pause_markers()
+        if not self._visible:
+            return
+        self._prepare_data()
+
+    def _prepare_data(self):
+        self._data_dirty = False
+        if len(self._times) == 0:
+            self._poly_data = None
+            self._played_rgb = None
+            self._unplayed_rgb = None
+            self._composite_rgb = None
+            return
 
         nonzero = np.where(self._strain > 0)[0]
         if len(nonzero) == 0:
@@ -82,23 +102,37 @@ class FastGraph:
 
         if len(self._times) < 2:
             self._poly_data = None
+            self._played_rgb = None
+            self._unplayed_rgb = None
+            self._composite_rgb = None
             return
 
         self._t_min = float(self._times[0])
         self._t_max = float(self._times[-1])
         self._poly_data = self._build_polygon()
         self._rebuild_images()
+        self._images_dirty = False
         self._last_split_px = -1
-        self.clear_all_pause_markers()
 
     def set_color(self, hex_color):
-        self._color_rgb = _hex_to_rgb(hex_color)
-        self._played_fill_rgb = _lerp_rgb(BG_COLOR_RGB, self._color_rgb, 0.45)
-        self._played_stroke_rgb = _lerp_rgb(BG_COLOR_RGB, self._color_rgb, 0.85)
+        new_color_rgb = _hex_to_rgb(hex_color)
+
+        # Rebuilding both graph images is expensive. Keep the existing
+        # images when the requested color is already active.
+        if new_color_rgb == self._color_rgb:
+            return
+
+        self._color_rgb = new_color_rgb
+        self._played_fill_rgb = _lerp_rgb(BG_COLOR_RGB, new_color_rgb, 0.45)
+        self._played_stroke_rgb = _lerp_rgb(BG_COLOR_RGB, new_color_rgb, 0.85)
 
         if self._poly_data is not None:
-            self._rebuild_images()
-            self._last_split_px = -1
+            if not self._visible:
+                self._images_dirty = True
+            else:
+                self._rebuild_images()
+                self._images_dirty = False
+                self._last_split_px = -1
 
     def hide(self):
         if self._visible and self._canvas_item is not None:
@@ -107,14 +141,31 @@ class FastGraph:
         self.clear_all_pause_markers()
 
     def show(self):
-        if not self._visible and self._canvas_item is not None:
+        if self._visible:
+            return
+
+        # Render once with the latest chart and color, then catch up
+        # to the most recent playback position.
+        if self._data_dirty:
+            self._prepare_data()
+        elif self._images_dirty and self._poly_data is not None:
+            self._rebuild_images()
+            self._images_dirty = False
+
+        if self._canvas_item is not None:
             self.canvas.itemconfigure(self._canvas_item, state="normal")
         self._visible = True
         self._last_split_px = -1
 
+        if self._last_position is not None:
+            self.update_position(*self._last_position)
+
     def update_position(self, song_time_ms, mod="NM"):
-        # Keep the graph state current even while the canvas item is hidden.
-        # This lets layout changes reveal an already-synchronized graph.
+        # Cache playback position in Compact / Statistics, without any
+        # image conversion, composition, or Tk photo update.
+        self._last_position = (song_time_ms, mod)
+        if not self._visible:
+            return
         if self._played_rgb is None or self._unplayed_rgb is None:
             return
 
@@ -175,6 +226,9 @@ class FastGraph:
         self._composite_rgb = None
         self._poly_data = None
         self._last_split_px = -1
+        self._last_position = None
+        self._data_dirty = False
+        self._images_dirty = False
 
     # --- Internal ---
 

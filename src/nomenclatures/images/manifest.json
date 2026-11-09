@@ -1,0 +1,709 @@
+{
+  "repository": "https://github.com/aleju03/mania-hub",
+  "revision": "1339369851234d6ed928aa1bd8149a4b558378e6",
+  "source_folder": "public/images/dans/reform",
+  "total": 100,
+  "notes": "Nombres originales del repositorio. SVG para niveles 1-10; WebP para alpha-kappa. El archivo sin sufijo es MID. Se incluye la licencia MIT del repositorio; verificar créditos de las ilustraciones para uso redistribuido.",
+  "files": [
+    {
+      "level": "1",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "1-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/1-low.svg"
+    },
+    {
+      "level": "1",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "1-mid-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/1-mid-low.svg"
+    },
+    {
+      "level": "1",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "1.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/1.svg"
+    },
+    {
+      "level": "1",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "1-mid-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/1-mid-high.svg"
+    },
+    {
+      "level": "1",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "1-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/1-high.svg"
+    },
+    {
+      "level": "2",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "2-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/2-low.svg"
+    },
+    {
+      "level": "2",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "2-mid-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/2-mid-low.svg"
+    },
+    {
+      "level": "2",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "2.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/2.svg"
+    },
+    {
+      "level": "2",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "2-mid-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/2-mid-high.svg"
+    },
+    {
+      "level": "2",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "2-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/2-high.svg"
+    },
+    {
+      "level": "3",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "3-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/3-low.svg"
+    },
+    {
+      "level": "3",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "3-mid-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/3-mid-low.svg"
+    },
+    {
+      "level": "3",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "3.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/3.svg"
+    },
+    {
+      "level": "3",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "3-mid-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/3-mid-high.svg"
+    },
+    {
+      "level": "3",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "3-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/3-high.svg"
+    },
+    {
+      "level": "4",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "4-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/4-low.svg"
+    },
+    {
+      "level": "4",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "4-mid-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/4-mid-low.svg"
+    },
+    {
+      "level": "4",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "4.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/4.svg"
+    },
+    {
+      "level": "4",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "4-mid-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/4-mid-high.svg"
+    },
+    {
+      "level": "4",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "4-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/4-high.svg"
+    },
+    {
+      "level": "5",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "5-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/5-low.svg"
+    },
+    {
+      "level": "5",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "5-mid-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/5-mid-low.svg"
+    },
+    {
+      "level": "5",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "5.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/5.svg"
+    },
+    {
+      "level": "5",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "5-mid-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/5-mid-high.svg"
+    },
+    {
+      "level": "5",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "5-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/5-high.svg"
+    },
+    {
+      "level": "6",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "6-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/6-low.svg"
+    },
+    {
+      "level": "6",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "6-mid-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/6-mid-low.svg"
+    },
+    {
+      "level": "6",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "6.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/6.svg"
+    },
+    {
+      "level": "6",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "6-mid-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/6-mid-high.svg"
+    },
+    {
+      "level": "6",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "6-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/6-high.svg"
+    },
+    {
+      "level": "7",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "7-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/7-low.svg"
+    },
+    {
+      "level": "7",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "7-mid-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/7-mid-low.svg"
+    },
+    {
+      "level": "7",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "7.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/7.svg"
+    },
+    {
+      "level": "7",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "7-mid-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/7-mid-high.svg"
+    },
+    {
+      "level": "7",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "7-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/7-high.svg"
+    },
+    {
+      "level": "8",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "8-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/8-low.svg"
+    },
+    {
+      "level": "8",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "8-mid-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/8-mid-low.svg"
+    },
+    {
+      "level": "8",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "8.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/8.svg"
+    },
+    {
+      "level": "8",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "8-mid-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/8-mid-high.svg"
+    },
+    {
+      "level": "8",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "8-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/8-high.svg"
+    },
+    {
+      "level": "9",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "9-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/9-low.svg"
+    },
+    {
+      "level": "9",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "9-mid-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/9-mid-low.svg"
+    },
+    {
+      "level": "9",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "9.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/9.svg"
+    },
+    {
+      "level": "9",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "9-mid-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/9-mid-high.svg"
+    },
+    {
+      "level": "9",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "9-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/9-high.svg"
+    },
+    {
+      "level": "10",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "10-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/10-low.svg"
+    },
+    {
+      "level": "10",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "10-mid-low.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/10-mid-low.svg"
+    },
+    {
+      "level": "10",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "10.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/10.svg"
+    },
+    {
+      "level": "10",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "10-mid-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/10-mid-high.svg"
+    },
+    {
+      "level": "10",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "10-high.svg",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/10-high.svg"
+    },
+    {
+      "level": "alpha",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "alpha-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/alpha-low.webp"
+    },
+    {
+      "level": "alpha",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "alpha-mid-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/alpha-mid-low.webp"
+    },
+    {
+      "level": "alpha",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "alpha.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/alpha.webp"
+    },
+    {
+      "level": "alpha",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "alpha-mid-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/alpha-mid-high.webp"
+    },
+    {
+      "level": "alpha",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "alpha-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/alpha-high.webp"
+    },
+    {
+      "level": "beta",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "beta-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/beta-low.webp"
+    },
+    {
+      "level": "beta",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "beta-mid-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/beta-mid-low.webp"
+    },
+    {
+      "level": "beta",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "beta.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/beta.webp"
+    },
+    {
+      "level": "beta",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "beta-mid-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/beta-mid-high.webp"
+    },
+    {
+      "level": "beta",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "beta-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/beta-high.webp"
+    },
+    {
+      "level": "gamma",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "gamma-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/gamma-low.webp"
+    },
+    {
+      "level": "gamma",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "gamma-mid-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/gamma-mid-low.webp"
+    },
+    {
+      "level": "gamma",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "gamma.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/gamma.webp"
+    },
+    {
+      "level": "gamma",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "gamma-mid-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/gamma-mid-high.webp"
+    },
+    {
+      "level": "gamma",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "gamma-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/gamma-high.webp"
+    },
+    {
+      "level": "delta",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "delta-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/delta-low.webp"
+    },
+    {
+      "level": "delta",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "delta-mid-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/delta-mid-low.webp"
+    },
+    {
+      "level": "delta",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "delta.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/delta.webp"
+    },
+    {
+      "level": "delta",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "delta-mid-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/delta-mid-high.webp"
+    },
+    {
+      "level": "delta",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "delta-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/delta-high.webp"
+    },
+    {
+      "level": "epsilon",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "epsilon-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/epsilon-low.webp"
+    },
+    {
+      "level": "epsilon",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "epsilon-mid-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/epsilon-mid-low.webp"
+    },
+    {
+      "level": "epsilon",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "epsilon.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/epsilon.webp"
+    },
+    {
+      "level": "epsilon",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "epsilon-mid-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/epsilon-mid-high.webp"
+    },
+    {
+      "level": "epsilon",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "epsilon-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/epsilon-high.webp"
+    },
+    {
+      "level": "zeta",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "zeta-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/zeta-low.webp"
+    },
+    {
+      "level": "zeta",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "zeta-mid-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/zeta-mid-low.webp"
+    },
+    {
+      "level": "zeta",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "zeta.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/zeta.webp"
+    },
+    {
+      "level": "zeta",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "zeta-mid-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/zeta-mid-high.webp"
+    },
+    {
+      "level": "zeta",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "zeta-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/zeta-high.webp"
+    },
+    {
+      "level": "eta",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "eta-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/eta-low.webp"
+    },
+    {
+      "level": "eta",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "eta-mid-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/eta-mid-low.webp"
+    },
+    {
+      "level": "eta",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "eta.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/eta.webp"
+    },
+    {
+      "level": "eta",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "eta-mid-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/eta-mid-high.webp"
+    },
+    {
+      "level": "eta",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "eta-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/eta-high.webp"
+    },
+    {
+      "level": "theta",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "theta-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/theta-low.webp"
+    },
+    {
+      "level": "theta",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "theta-mid-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/theta-mid-low.webp"
+    },
+    {
+      "level": "theta",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "theta.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/theta.webp"
+    },
+    {
+      "level": "theta",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "theta-mid-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/theta-mid-high.webp"
+    },
+    {
+      "level": "theta",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "theta-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/theta-high.webp"
+    },
+    {
+      "level": "iota",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "iota-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/iota-low.webp"
+    },
+    {
+      "level": "iota",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "iota-mid-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/iota-mid-low.webp"
+    },
+    {
+      "level": "iota",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "iota.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/iota.webp"
+    },
+    {
+      "level": "iota",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "iota-mid-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/iota-mid-high.webp"
+    },
+    {
+      "level": "iota",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "iota-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/iota-high.webp"
+    },
+    {
+      "level": "kappa",
+      "sublevel": "low",
+      "suffix": "--",
+      "file": "kappa-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/kappa-low.webp"
+    },
+    {
+      "level": "kappa",
+      "sublevel": "mid-low",
+      "suffix": "-",
+      "file": "kappa-mid-low.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/kappa-mid-low.webp"
+    },
+    {
+      "level": "kappa",
+      "sublevel": "mid",
+      "suffix": "",
+      "file": "kappa.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/kappa.webp"
+    },
+    {
+      "level": "kappa",
+      "sublevel": "mid-high",
+      "suffix": "+",
+      "file": "kappa-mid-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/kappa-mid-high.webp"
+    },
+    {
+      "level": "kappa",
+      "sublevel": "high",
+      "suffix": "++",
+      "file": "kappa-high.webp",
+      "source_url": "https://raw.githubusercontent.com/aleju03/mania-hub/1339369851234d6ed928aa1bd8149a4b558378e6/public/images/dans/reform/kappa-high.webp"
+    }
+  ]
+}

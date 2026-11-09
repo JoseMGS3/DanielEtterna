@@ -1,0 +1,81 @@
+"""GUI-free tests for optional image loading and caching."""
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch, sentinel
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from PIL import Image
+import dan_image_renderer
+
+
+class ImageTests(unittest.TestCase):
+    def setUp(self):
+        dan_image_renderer._IMAGE_CACHE.clear()
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.folder = Path(temporary.name)
+
+    def test_missing_art_is_safe(self):
+        self.assertIsNone(dan_image_renderer.load_dan_image(None, 40))
+        self.assertIsNone(dan_image_renderer.load_dan_image(
+            self.folder / "missing.svg", 40
+        ))
+
+    def test_webp_cache_and_proportions(self):
+        path = self.folder / "beta-low.webp"
+        Image.new("RGB", (120, 40), (190, 50, 20)).save(path, "WEBP")
+        sizes = []
+
+        def fake_photo(img, master=None):
+            sizes.append(img.size)
+            return sentinel.artwork
+
+        with patch.object(dan_image_renderer.ImageTk, "PhotoImage", fake_photo):
+            a = dan_image_renderer.load_dan_image(path, 60)
+            b = dan_image_renderer.load_dan_image(path, 60)
+        self.assertIs(a, sentinel.artwork)
+        self.assertIs(b, a)
+        self.assertEqual(sizes, [(180, 60)])
+
+    def test_transparent_padding_is_trimmed_before_scaling(self):
+        path = self.folder / "padded.webp"
+        image = Image.new("RGBA", (200, 200), (0, 0, 0, 0))
+        for x in range(75, 125):
+            for y in range(50, 150):
+                image.putpixel((x, y), (255, 255, 255, 255))
+        image.save(path, "WEBP", lossless=True)
+
+        sizes = []
+        with patch.object(
+            dan_image_renderer.ImageTk,
+            "PhotoImage",
+            side_effect=lambda img, master=None: sizes.append(img.size) or sentinel.artwork,
+        ):
+            result = dan_image_renderer.load_dan_image(path, 60)
+        self.assertIs(result, sentinel.artwork)
+        self.assertEqual(sizes, [(30, 60)])
+
+    def test_numeric_dan_png_loads_with_pillow(self):
+        path = self.folder / "10-low.png"
+        Image.new("RGBA", (100, 100), (220, 120, 60, 255)).save(path)
+        with patch.object(
+            dan_image_renderer.ImageTk, "PhotoImage",
+            return_value=sentinel.number_badge,
+        ):
+            self.assertIs(
+                dan_image_renderer.load_dan_image(path, 42),
+                sentinel.number_badge,
+            )
+
+    def test_invalid_webp_is_safe(self):
+        path = self.folder / "bad.webp"
+        path.write_bytes(b"invalid")
+        self.assertIsNone(dan_image_renderer.load_dan_image(path, 40))
+
+
+if __name__ == "__main__":
+    unittest.main()

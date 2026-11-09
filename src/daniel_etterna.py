@@ -18,6 +18,8 @@ import chart_loader
 import config_manager
 import i18n
 import global_hotkeys
+import nomenclature_manager
+import dan_image_renderer
 
 from graph_fast import FastGraph
 
@@ -30,7 +32,7 @@ def resource_path(relative_path):
 
 # --- Constants ---
 
-APP_VERSION = "1.1"
+APP_VERSION = "1.1.1"
 TOSU_WS = "ws://localhost:24050/ws"
 
 # ============================================================
@@ -67,9 +69,9 @@ GRAPH_HEIGHT = 250
 BAR_HEIGHT = 120
 WINDOW_WIDTH = 650
 
-COMPACT_HEIGHT = 65
-STATISTICS_HEIGHT = 120
-FULL_HEIGHT = GRAPH_HEIGHT + BAR_HEIGHT
+COMPACT_HEIGHT = 72
+STATISTICS_HEIGHT = 116
+FULL_HEIGHT = 407
 
 COMPACT_WIDTH = 550
 STATISTICS_WIDTH = 650
@@ -91,23 +93,29 @@ MODE_NAME_TO_VALUE = {
     for index, name in enumerate(MODE_NAMES)
 }
 
+# Percentages of each layout's default dimensions.
 WINDOW_SIZE_PRESETS = {
-    "small": {
-        MODE_COMPACT: (420, 65),
-        MODE_STATISTICS: (500, 110),
-        MODE_FULL: (500, 300),
-    },
-    "medium": {
-        MODE_COMPACT: (550, 65),
-        MODE_STATISTICS: (650, 120),
-        MODE_FULL: (650, 370),
-    },
-    "large": {
-        MODE_COMPACT: (750, 80),
-        MODE_STATISTICS: (800, 150),
-        MODE_FULL: (850, 500),
-    },
+    "50%": 0.50,
+    "75%": 0.75,
+    "100%": 1.00,
 }
+
+
+def _scaled_mode_size(mode, scale):
+    return (
+        max(1, int(MODE_WIDTHS[mode] * scale + 0.5)),
+        max(1, int(MODE_HEIGHTS[mode] * scale + 0.5)),
+    )
+
+
+def _saved_mode_size(mode):
+    default_width = MODE_WIDTHS[mode]
+    default_height = MODE_HEIGHTS[mode]
+    saved = APP_CONFIG.get("window_sizes", {}).get(MODE_NAMES[mode], {})
+    return (
+        max(int(default_width * 0.5 + 0.5), int(saved.get("width", default_width))),
+        max(int(default_height * 0.5 + 0.5), int(saved.get("height", default_height))),
+    )
 
 BG_COLOR = "#000000"
 PREFIX_FILL = "#FFFFFF"
@@ -205,6 +213,7 @@ connection_phase = "connecting"
 
 _last_dan_label = "."
 _last_dan_numeric = ""
+_last_sr = None
 current_mode = MODE_NAME_TO_VALUE.get(
     str(APP_CONFIG.get("layout", "full")).strip().lower(),
     MODE_FULL,
@@ -253,6 +262,7 @@ def _set_etterna_root(path_value):
     global current_native_msd
     global current_strain_data
     global current_msd_data
+    global _last_sr
     global gameplay_active
     global gameplay_receive_time
     global menu_receive_time
@@ -308,6 +318,7 @@ def _set_etterna_root(path_value):
     current_native_msd = None
     current_strain_data = None
     current_msd_data = None
+    _last_sr = None
     gameplay_active = False
     gameplay_receive_time = 0.0
     menu_receive_time = 0.0
@@ -362,18 +373,18 @@ if os.name == "nt" and hasattr(ctypes, "windll"):
 root = tk.Tk()
 root.tk.call("tk", "scaling", 1.0)
 root.title(f"DanielEtterna {APP_VERSION}")
-root.geometry(
-    f"{MODE_WIDTHS[current_mode]}x{MODE_HEIGHTS[current_mode]}"
-)
+_initial_width, _initial_height = _saved_mode_size(current_mode)
+_saved_geometry = APP_CONFIG.get("main_window_geometry", "")
+try:
+    root.geometry(
+        _saved_geometry or f"{_initial_width}x{_initial_height}"
+    )
+except tk.TclError:
+    root.geometry(f"{_initial_width}x{_initial_height}")
 root.resizable(True, True)
 
-# Permitimos reducir la ventana sin romper el modo compacto.
-_initial_min_height = {
-    MODE_COMPACT: COMPACT_HEIGHT,
-    MODE_STATISTICS: STATISTICS_HEIGHT,
-    MODE_FULL: BAR_HEIGHT + 80,
-}[current_mode]
-root.minsize(350, _initial_min_height)
+# Allow the 50% preset for every layout.
+root.minsize(*_scaled_mode_size(current_mode, 0.50))
 
 root.configure(bg=BG_COLOR)
 root.attributes("-topmost", True)
@@ -464,6 +475,15 @@ def _get_text_y_offset():
     # En modo full el texto debe comenzar justo debajo del
     # gráfico, incluso después de redimensionar la ventana.
     return graph.graph_height if current_mode == MODE_FULL else 0
+
+
+def _ui_text_scale():
+    # Full retains a 120px text area even with a smaller graph.
+    # Compact / Statistics must also shrink text at 50% or 75%.
+    if current_mode == MODE_FULL:
+        return 1.0
+    actual_height = max(1, canvas.winfo_height())
+    return max(0.5, min(1.0, actual_height / MODE_HEIGHTS[current_mode]))
 
 
 def _canvas_text_width():
@@ -808,7 +828,12 @@ def draw_msd(msd_result, color):
     if current_mode == MODE_COMPACT:
         return
 
-    y = _get_text_y_offset() + 80
+    ui_scale = _ui_text_scale()
+    y = _get_text_y_offset() + 80 * ui_scale
+    msd_font = _font_with_size(
+        FONT_MSD_SKILL,
+        max(10, int(abs(FONT_MSD_SKILL[1]) * ui_scale + 0.5)),
+    )
     available_width = max(
         1,
         _canvas_text_width() - 28
@@ -822,9 +847,9 @@ def draw_msd(msd_result, color):
 
         font = _fit_font_to_width(
             text,
-            FONT_MSD_SKILL,
+            msd_font,
             available_width,
-            min_size=12,
+            min_size=8,
         )
 
         msd_items += draw_text(
@@ -855,9 +880,9 @@ def draw_msd(msd_result, color):
 
     font = _fit_font_to_width(
         text,
-        FONT_MSD_SKILL,
+        msd_font,
         available_width,
-        min_size=12,
+        min_size=8,
     )
 
     msd_items += draw_text(
@@ -878,6 +903,34 @@ def draw_accent_bar():
     return accent_bar
 
 
+def _center_nonfull_text():
+    """Vertically center the drawn text within the current layout height.
+
+    Compact centers the Dan row; Statistics centers the Dan + MSD group.
+    Bounding boxes account for actual font metrics, resized layouts,
+    localized text, and longer custom nomenclature labels.
+    """
+    if current_mode == MODE_FULL:
+        return
+
+    items = text_items + msd_items
+    if not items:
+        return
+
+    bounds = canvas.bbox(*items)
+    if bounds is None:
+        return
+
+    height = canvas.winfo_height()
+    if height <= 1:
+        height = _saved_mode_size(current_mode)[1]
+
+    vertical_shift = round((height - bounds[1] - bounds[3]) / 2)
+    if vertical_shift:
+        for item in items:
+            canvas.move(item, 0, vertical_shift)
+
+
 def fade_items(text_item, bar_item, start_color, end_color, steps=14):
     global current_bar_color
 
@@ -885,12 +938,14 @@ def fade_items(text_item, bar_item, start_color, end_color, steps=14):
         global current_bar_color
         if i < steps:
             color = lerp_color(start_color, end_color, i / steps)
-            canvas.itemconfig(text_item, fill=color)
+            if text_item is not None:
+                canvas.itemconfig(text_item, fill=color)
             canvas.itemconfig(bar_item, fill=color)
             current_bar_color = color
             root.after(15, lambda: _step(i + 1))
         else:
-            canvas.itemconfig(text_item, fill=end_color)
+            if text_item is not None:
+                canvas.itemconfig(text_item, fill=end_color)
             canvas.itemconfig(bar_item, fill=end_color)
             current_bar_color = end_color
             graph.set_color(end_color)
@@ -917,22 +972,18 @@ def update_dan_text(dan_label, dan_numeric):
         new_bar_color = fill
 
     else:
-        if "-" in dan_label:
-            base = dan_label.split("-", 1)[1]
-        else:
-            base = dan_label
-
-        fill = DAN_COLORS.get(
-            base,
-            "#FFFFFF"
-        )
+        # Both "Low-Alpha" (Default) and "Alpha low" (MMA) use
+        # the same colors, including "Emik Zeta" / "Thaumiel Eta".
+        base = nomenclature_manager.color_key_from_label(dan_label)
+        fill = DAN_COLORS.get(base, "#FFFFFF")
         new_bar_color = fill
 
     bar = draw_accent_bar()
 
     y_off = _get_text_y_offset()
-    y = y_off + 28
-    prefix_y = y + PREFIX_Y_OFFSET
+    ui_scale = _ui_text_scale()
+    y = y_off + 28 * ui_scale
+    prefix_y = y + PREFIX_Y_OFFSET * ui_scale
 
     prefix_text = i18n.t(
         "estimated_dan",
@@ -991,6 +1042,15 @@ def update_dan_text(dan_label, dan_numeric):
         display_numeric
     )
 
+    if ui_scale < 1.0:
+        prefix_font = _font_with_size(
+            prefix_font, max(8, abs(int(prefix_font[1])) * ui_scale)
+        )
+        dan_font = _font_with_size(
+            dan_font, max(12, abs(int(dan_font[1])) * ui_scale)
+        )
+        numeric_font = prefix_font
+
     prefix = draw_text(
         14,
         prefix_y,
@@ -1008,7 +1068,29 @@ def update_dan_text(dan_label, dan_numeric):
     )
     xpos = 14 + pw + 8
 
-    if dan_label == "? ? ? ? ?":
+    # An Images nomenclature draws a badge instead of the Dan label.
+    # If the artwork is missing or CairoSVG cannot render an SVG, show text.
+    dan_photo = None
+    if (
+        APP_CONFIG.get("nomenclature") == "Images"
+        and not is_loading_text(dan_label)
+        and dan_label not in ("Invalid Beatmap", "? ? ? ? ?")
+        and not dan_label.startswith(("<", ">"))
+        and not is_vibro
+    ):
+        artwork = nomenclature_manager.image_asset_path(dan_numeric)
+        if artwork is not None:
+            dan_photo = dan_image_renderer.load_dan_image(
+                artwork,
+                max(18, round(48 * ui_scale)),
+                master=root,
+            )
+
+    if dan_photo is not None:
+        dan_items = [canvas.create_image(
+            xpos, y, image=dan_photo, anchor="w"
+        )]
+    elif dan_label == "? ? ? ? ?":
         dan_items = draw_outline_text(
             xpos,
             y,
@@ -1077,6 +1159,10 @@ def update_dan_text(dan_label, dan_numeric):
             canvas.delete(item)
         msd_items.clear()
 
+    # In Compact and Statistics, use the *actual* painted text bounds
+    # to center everything on the window's horizontal midline.
+    _center_nonfull_text()
+
     # El color del gráfico se mantiene sincronizado aunque esté oculto.
     graph.set_color(
         new_bar_color
@@ -1092,7 +1178,7 @@ def update_dan_text(dan_label, dan_numeric):
         and dan_label != "? ? ? ? ?"
     ):
         fade_items(
-            dan_items[-1],
+            None if dan_photo is not None else dan_items[-1],
             bar,
             current_bar_color,
             new_bar_color
@@ -1104,7 +1190,7 @@ def update_dan_text(dan_label, dan_numeric):
         )
         current_bar_color = new_bar_color
 
-        if dan_label != "? ? ? ? ?":
+        if dan_label != "? ? ? ? ?" and dan_photo is None:
             canvas.itemconfig(
                 dan_items[-1],
                 fill=fill
@@ -1159,14 +1245,15 @@ def _rebuild_graph(width, height):
         and len(strain_data) == 2
         and len(strain_data[0]) >= 2
     ):
+        # Set the color before data, so a resized Full graph is
+        # rasterized only once with the right appearance.
+        graph.set_color(current_bar_color)
         graph.set_data(
             strain_data[0],
             strain_data[1]
         )
-
-    graph.set_color(
-        current_bar_color
-    )
+    else:
+        graph.set_color(current_bar_color)
 
     if (
         current_mode == MODE_FULL
@@ -1243,29 +1330,37 @@ def _on_window_resize(event):
 
 # --- Mode switching ---
 
-def _apply_window_preset(preset_name):
-    preset = WINDOW_SIZE_PRESETS.get(
-        preset_name
-    )
-
-    if not preset:
+def _remember_main_window_size():
+    """Remember a resized layout without writing config on every <Configure>."""
+    try:
+        if root.state() != "normal":
+            return
+        root.update_idletasks()
+        width = int(root.winfo_width())
+        height = int(root.winfo_height())
+    except tk.TclError:
         return
 
-    width, height = preset[current_mode]
+    if width > 1 and height > 1:
+        APP_CONFIG.setdefault("window_sizes", {})[
+            MODE_NAMES[current_mode]
+        ] = {"width": width, "height": height}
 
-    root.geometry(
-        f"{width}x{height}"
-    )
 
-    canvas.configure(
-        width=width,
-        height=height,
-    )
+def _apply_window_preset(preset_name):
+    scale = WINDOW_SIZE_PRESETS.get(preset_name)
+    if scale is None:
+        return
 
-    root.after(
-        100,
-        _resize_contents
-    )
+    width, height = _scaled_mode_size(current_mode, scale)
+
+    APP_CONFIG.setdefault("window_sizes", {})[
+        MODE_NAMES[current_mode]
+    ] = {"width": width, "height": height}
+
+    root.geometry(f"{width}x{height}")
+    canvas.configure(width=width, height=height)
+    root.after(100, _resize_contents)
 
 
 def _save_layout_preference():
@@ -1285,19 +1380,9 @@ def _save_layout_preference():
 
 
 def _apply_mode():
-    h = MODE_HEIGHTS[current_mode]
-    w = MODE_WIDTHS[current_mode]
+    w, h = _saved_mode_size(current_mode)
 
-    min_height = {
-        MODE_COMPACT: COMPACT_HEIGHT,
-        MODE_STATISTICS: STATISTICS_HEIGHT,
-        MODE_FULL: BAR_HEIGHT + 80,
-    }[current_mode]
-
-    root.minsize(
-        350,
-        min_height
-    )
+    root.minsize(*_scaled_mode_size(current_mode, 0.50))
 
     root.geometry(f"{w}x{h}")
     canvas.configure(width=w, height=h)
@@ -1326,6 +1411,9 @@ def _apply_mode():
 
 def cycle_mode(event=None):
     global current_mode
+
+    # Capture the outgoing layout before its geometry is replaced.
+    _remember_main_window_size()
 
     current_mode = (
         current_mode + 1
@@ -1510,6 +1598,18 @@ def apply_keybinds():
             _dispatch_keypress,
             add="+",
         )
+
+        # Tk gives Tab/Shift+Tab special focus-navigation bindings on
+        # the "all" bindtag. Those specific bindings take precedence
+        # over a generic <KeyPress> binding on the same tag. Register
+        # Tab on the toplevel bindtag, which runs before "all".
+        # _dispatch_keypress only returns "break" for an actual
+        # focus-only hotkey, so normal Tab navigation still works
+        # when the binding is different or Options is open.
+        root.bind("<Tab>", _dispatch_keypress, add="+")
+        root.bind("<Shift-Tab>", _dispatch_keypress, add="+")
+        root.bind("<ISO_Left_Tab>", _dispatch_keypress, add="+")
+
         _local_key_dispatch_installed = True
 
     # Reiniciar el hook para aplicar inmediatamente cambios de teclas
@@ -1881,7 +1981,7 @@ def open_settings(event=None):
         bd=0,
         highlightthickness=0,
     )
-    style_tab = tk.Frame(
+    skins_tab = tk.Frame(
         content_host,
         bg=BG_COLOR,
         bd=0,
@@ -1890,7 +1990,7 @@ def open_settings(event=None):
 
     for tab in (
         general_tab,
-        style_tab,
+        skins_tab,
     ):
         tab.place(
             x=0,
@@ -1905,10 +2005,15 @@ def open_settings(event=None):
         selected = (
             general_tab
             if name == "general"
-            else style_tab
+            else skins_tab
         )
 
         selected.tkraise()
+        if name == "skins":
+            chosen = nomenclature_var.get()
+            if chosen not in nomenclature_names:
+                nomenclature_var.set("Default")
+            _refresh_nomenclature_cards()
 
         for tab_name, button in (
             tab_buttons.items()
@@ -1962,12 +2067,12 @@ def open_settings(event=None):
         padx=(0, 10),
     )
 
-    tab_buttons["style"] = tk.Button(
+    tab_buttons["skins"] = tk.Button(
         tabs_bar,
-        text=tr("style_tab"),
+        text=tr("skins_tab"),
         command=lambda: (
             _show_settings_tab(
-                "style"
+                "skins"
             )
         ),
         bg="#151515",
@@ -1983,9 +2088,152 @@ def open_settings(event=None):
         padx=32,
         pady=11,
     )
-    tab_buttons["style"].pack(
+    tab_buttons["skins"].pack(
         side="left",
     )
+
+    # --------------------------------------------------------
+    # SKINS — always-visible selection cards, no combobox
+    # --------------------------------------------------------
+    skins_tab.grid_columnconfigure(0, weight=1)
+    skins_tab.grid_rowconfigure(2, weight=1)
+
+    tk.Label(
+        skins_tab, text=tr("nomenclature_label"),
+        bg=BG_COLOR, fg=fg, font=title_font, anchor="w",
+    ).grid(row=0, column=0, padx=10, pady=(4, 3), sticky="ew")
+
+    tk.Label(
+        skins_tab, text=tr("nomenclature_examples"),
+        bg=BG_COLOR, fg=muted, font=small_font, anchor="w",
+    ).grid(row=1, column=0, padx=10, pady=(0, 8), sticky="ew")
+
+    nomenclature_names = nomenclature_manager.available_names()
+    selected_nomenclature = APP_CONFIG.get("nomenclature", "Default")
+    if selected_nomenclature not in nomenclature_names:
+        selected_nomenclature = "Default"
+    nomenclature_var = tk.StringVar(master=win, value=selected_nomenclature)
+
+    nomenclature_list = tk.Frame(skins_tab, bg=BG_COLOR)
+    nomenclature_list.grid(
+        row=2, column=0, padx=(4, 8), sticky="nsew"
+    )
+    nomenclature_list.grid_rowconfigure(0, weight=1)
+    nomenclature_list.grid_columnconfigure(0, weight=1)
+
+    cards_canvas = tk.Canvas(
+        nomenclature_list, bg=BG_COLOR, borderwidth=0,
+        highlightthickness=0,
+    )
+    cards_scroll = tk.Scrollbar(
+        nomenclature_list, orient="vertical", command=cards_canvas.yview,
+    )
+    cards_canvas.configure(yscrollcommand=cards_scroll.set)
+    cards_canvas.grid(row=0, column=0, sticky="nsew")
+    cards_scroll.grid(row=0, column=1, sticky="ns")
+
+    cards_body = tk.Frame(cards_canvas, bg=BG_COLOR)
+    cards_window = cards_canvas.create_window(
+        (0, 0), window=cards_body, anchor="nw",
+    )
+
+    def _sync_cards_scroll_region(event=None):
+        cards_canvas.configure(scrollregion=cards_canvas.bbox("all"))
+
+    def _sync_cards_width(event):
+        cards_canvas.itemconfigure(cards_window, width=event.width)
+
+    cards_body.bind("<Configure>", _sync_cards_scroll_region)
+    cards_canvas.bind("<Configure>", _sync_cards_width)
+
+    card_widgets = {}
+    sample_dp = 12.08
+
+    def _refresh_nomenclature_cards():
+        chosen = nomenclature_var.get()
+        for key, (card, radio, preview) in card_widgets.items():
+            active = key == chosen
+            bg = "#252B38" if active else "#191919"
+            card.configure(
+                bg=bg,
+                highlightbackground="#86B6FF" if active else "#373737",
+            )
+            radio.configure(
+                bg=bg, activebackground=bg,
+                fg="#FFFFFF" if active else "#DDDDDD",
+            )
+            preview.configure(bg=bg)
+
+    def _select_nomenclature(value):
+        nomenclature_var.set(value)
+        _refresh_nomenclature_cards()
+
+    for name in nomenclature_names:
+        card = tk.Frame(
+            cards_body,
+            bg="#191919",
+            highlightbackground="#373737",
+            highlightthickness=1,
+            bd=0,
+            cursor="hand2",
+        )
+        card.pack(fill="x", padx=(6, 8), pady=4)
+
+        radio = tk.Radiobutton(
+            card,
+            text=name,
+            variable=nomenclature_var,
+            value=name,
+            command=_refresh_nomenclature_cards,
+            bg="#191919",
+            fg="#FFFFFF",
+            selectcolor="#343434",
+            activebackground="#252B38",
+            activeforeground="#FFFFFF",
+            font=normal_font,
+            anchor="w",
+            cursor="hand2",
+            bd=0,
+            highlightthickness=0,
+            padx=10,
+            pady=4,
+        )
+        radio.pack(fill="x", padx=(4, 4), pady=(4, 0))
+
+        preview_label, preview_numeric = nomenclature_manager.apply_nomenclature(
+            "Low-Beta", sample_dp, name
+        )
+        preview_text = f"{preview_label} ({preview_numeric:.2f})"
+        image = None
+        if name == "Images":
+            path = nomenclature_manager.image_asset_path(sample_dp)
+            image = dan_image_renderer.load_dan_image(
+                path, 42, master=win
+            )
+            if image is None:
+                preview_text += tr("images_missing_preview")
+        preview = tk.Label(
+            card,
+            text=preview_text if image is None else f"({preview_numeric:.2f})",
+            image=image,
+            compound="left",
+            bg="#191919",
+            fg=DAN_COLORS.get("Beta", "#FFFFFF"),
+            font=small_font,
+            anchor="w",
+            padx=10,
+            pady=4,
+        )
+        preview.pack(fill="x", padx=14, pady=(0, 6))
+        card_widgets[name] = (card, radio, preview)
+
+        card.bind(
+            "<Button-1>", lambda event, key=name: _select_nomenclature(key)
+        )
+        preview.bind(
+            "<Button-1>", lambda event, key=name: _select_nomenclature(key)
+        )
+    _refresh_nomenclature_cards()
 
     # --------------------------------------------------------
     # LAYOUT RESPONSIVE - GENERAL
@@ -2253,16 +2501,16 @@ def open_settings(event=None):
     ) in enumerate(
         (
             (
-                tr("size_small"),
-                "small",
+                tr("size_50_percent"),
+                "50%",
             ),
             (
-                tr("size_medium"),
-                "medium",
+                tr("size_75_percent"),
+                "75%",
             ),
             (
-                tr("size_large"),
-                "large",
+                tr("size_100_percent"),
+                "100%",
             ),
         )
     ):
@@ -2662,6 +2910,7 @@ def open_settings(event=None):
         global current_keybinds
         global current_global_hotkeys
         global current_language
+        global _last_dan_label, _last_dan_numeric
         global _settings_window
 
         proposed_language = (
@@ -2725,10 +2974,17 @@ def open_settings(event=None):
             global_hotkeys_var.get()
         )
 
+        # Saving Options must not discard sizes set on the main window.
+        _remember_main_window_size()
+
         new_config = {
             "etterna_root": clean_path,
             "language": proposed_language,
+            "config_version": config_manager.DEFAULT_CONFIG["config_version"],
             "layout": MODE_NAMES[current_mode],
+            "nomenclature": nomenclature_var.get(),
+            "main_window_geometry": APP_CONFIG.get("main_window_geometry", ""),
+            "window_sizes": dict(APP_CONFIG.get("window_sizes", {})),
             "global_hotkeys": proposed_global_hotkeys,
             "settings_window_size": (
                 _current_settings_window_size()
@@ -2784,6 +3040,10 @@ def open_settings(event=None):
         if connection_phase != "ready":
             _draw_connection_screen()
         else:
+            # Reformat the already computed rating immediately when the
+            # nomenclature changes; no chart reparse or SR recalculation.
+            if _last_sr is not None:
+                _last_dan_label, _last_dan_numeric = get_dan_from_diff(_last_sr)
             update_dan_text(
                 _last_dan_label,
                 _last_dan_numeric,
@@ -2848,6 +3108,49 @@ def open_settings(event=None):
     save_button.pack(
         side="left",
     )
+
+    # Skins uses the same Save/Cancel handlers as General. Keeping the
+    # buttons in each tab means they remain visible while editing names.
+    skins_button_bar = tk.Frame(
+        skins_tab,
+        bg=BG_COLOR,
+        bd=0,
+        highlightthickness=0,
+    )
+    skins_button_bar.grid(
+        row=3, column=0,
+        sticky="e", padx=10, pady=(7, 8),
+    )
+    skins_cancel_button = tk.Button(
+        skins_button_bar,
+        text=tr("cancel"),
+        command=_on_close,
+        bg=button_bg,
+        fg=fg,
+        activebackground="#333333",
+        activeforeground=fg,
+        relief="flat",
+        bd=0,
+        font=small_font,
+        padx=18,
+        pady=5,
+    )
+    skins_cancel_button.pack(side="left", padx=(0, 8))
+    skins_save_button = tk.Button(
+        skins_button_bar,
+        text=tr("save"),
+        command=_save_settings,
+        bg="#FFFFFF",
+        fg="#000000",
+        activebackground="#DDDDDD",
+        activeforeground="#000000",
+        relief="flat",
+        bd=0,
+        font=small_font,
+        padx=20,
+        pady=5,
+    )
+    skins_save_button.pack(side="left")
 
     # --------------------------------------------------------
     # RESPONSIVE RESIZE
@@ -4227,6 +4530,12 @@ def etterna_bridge_loop():
 
         time.sleep(0.1)
 
+def _show_graph_if_full():
+    """Ignore queued show requests after switching out of Full."""
+    if current_mode == MODE_FULL and connection_phase == "ready":
+        graph.show()
+
+
 # --- Calculation loop ---
 
 def calculation_loop():
@@ -4241,6 +4550,7 @@ def calculation_loop():
 
     global _last_dan_label
     global _last_dan_numeric
+    global _last_sr
 
     while True:
 
@@ -4579,13 +4889,9 @@ def calculation_loop():
             )
 
 
-            _last_dan_label = (
-                dan_label
-            )
-
-            _last_dan_numeric = (
-                dan_numeric
-            )
+            _last_dan_label = dan_label
+            _last_dan_numeric = dan_numeric
+            _last_sr = SR
 
 
             print()
@@ -4621,8 +4927,8 @@ def calculation_loop():
             last_state = state
 
 
-            # El gráfico recibe los datos aunque el layout actual
-            # no lo muestre, para que aparezca actualizado al volver.
+            # En Compact / Statistics solo se conservan los datos:
+            # FastGraph pospone el renderizado hasta regresar a Full.
             root.after(
                 0,
                 lambda _t=t_arr,
@@ -4642,9 +4948,11 @@ def calculation_loop():
             )
 
             if current_mode == MODE_FULL:
+                # Check the layout again when Tk runs the callback;
+                # the user may have switched to Compact meanwhile.
                 root.after(
                     0,
-                    graph.show
+                    _show_graph_if_full
                 )
 
 
@@ -4665,11 +4973,9 @@ def calculation_loop():
             )
 
 
-            _last_dan_label = (
-                "Invalid Beatmap"
-            )
-
+            _last_dan_label = "Invalid Beatmap"
             _last_dan_numeric = ""
+            _last_sr = None
 
 
             with lock:
@@ -4708,7 +5014,7 @@ def _precompute_dan_boundaries():
 _DAN_BOUNDARIES = _precompute_dan_boundaries()
 
 
-def get_dan_from_diff(diff):
+def _get_default_dan_from_diff(diff):
 
     # ========================================================
     # DANS NUMERICOS POR DEBAJO DE ALPHA
@@ -4861,10 +5167,31 @@ def get_dan_from_diff(diff):
     return "? ? ? ? ?", "N/A"
 
 
+def get_dan_from_diff(diff):
+    """Preserve the legacy algorithm and format only its displayed rating."""
+    default_label, default_numeric = _get_default_dan_from_diff(diff)
+    return nomenclature_manager.apply_nomenclature(
+        default_label,
+        default_numeric,
+        APP_CONFIG.get("nomenclature", "Default"),
+    )
+
+
 # --- Boot ---
 
 
 def _on_app_close():
+    # Store the final size for this layout, plus Tk's exact geometry
+    # (including the screen position, which can be negative on a 2nd display).
+    try:
+        _remember_main_window_size()
+        if root.state() == "normal":
+            APP_CONFIG["main_window_geometry"] = root.geometry()
+        APP_CONFIG["layout"] = MODE_NAMES[current_mode]
+        config_manager.save_config(APP_CONFIG)
+    except (OSError, tk.TclError) as exc:
+        print("[Config] Could not save main window geometry:", exc)
+
     try:
         hotkey_manager.stop()
     except Exception:

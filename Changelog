@@ -1,3 +1,18 @@
+## Version 1.1.1
+
+- Restores the main window's size and on-screen position after closing.
+- Replaces window size presets with 50%, 75%, and 100% of each layout's base size.
+- Scales Compact and Statistics layout overlay text for smaller window sizes.
+- Renamed Style tab to Skins.
+- Fixed some errors
+- Adds new Nomenclatures (naming system):
+    - Default: Daniel's default naming with three subdivisions, DP: 12.08 = Low-Beta
+    - MMA: Based on LeoBlack's Mania Map Analizer naming with five subdivisions, DP: 12.08 = Beta mid
+    - --/++: Uses only dan name and a symbol with five subdivisions, DP: 12.08 = Beta--
+    - Mania tracker: Uses [Mania tracker](https://mania-tracker.com) naming with five subdivisions, DP: 12.08= Beta Low
+    - Images: Uses Mania tracker dan images and five subdivisions.
+
+
 ## Version 1.1
 
 - Clears stale Etterna bridge state on startup so the previous chart is not shown.

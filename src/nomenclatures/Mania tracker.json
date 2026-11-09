@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "id": "Mania tracker",
+  "name": "Mania tracker",
+  "label_mode": "interval",
+  "numeric_offset": 0,
+  "tiers": [
+    "low",
+    "mid/low",
+    "mid",
+    "mid/high",
+    "high"
+  ],
+  "dans": {
+    "0": "Intro 3",
+    "1": "Reform 1",
+    "2": "Reform 2",
+    "3": "Reform 3",
+    "4": "Reform 4",
+    "5": "Reform 5",
+    "6": "Reform 6",
+    "7": "Reform 7",
+    "8": "Reform 8",
+    "9": "Reform 9",
+    "10": "Reform 10",
+    "11": "Alpha",
+    "12": "Beta",
+    "13": "Gamma",
+    "14": "Delta",
+    "15": "Epsilon",
+    "16": "Emik Zeta",
+    "17": "Thaumiel Eta",
+    "18": "CloverWisp Theta",
+    "19": "Iota",
+    "20": "Kappa",
+    "-2": "Intro 1",
+    "-1": "Intro 2"
+  }
+}

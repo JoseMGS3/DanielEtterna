@@ -1,4 +1,4 @@
-# DanielEtterna v1.1
+# DanielEtterna v1.1.1
 
 A real-time rice difficulty calculator for 4k Etterna. Supports .osu, .ssc and .sm files. (Note: .sm/.ssc charts using WARPS are not currently supported.)
 
@@ -45,17 +45,23 @@ Other themes may be compatible, but their `ScreenSelectMusic` and `ScreenGamepla
 pip install -r requirements.txt
 ```
 
-2. Open cmd on `DanielEtterna-main\src` then paste:
+2. Execute `build_windows.bat`. It converts the 50 numbered SVGs to PNG and generates `dist/DanielEtterna.exe` all ready.
+
+   If you prefer to build manually, run the following in the root:
 
 ```cmd
-pyinstaller --clean --noconfirm --onefile --windowed --name DanielEtterna --icon=icon.ico --add-data "icon.ico;." daniel_etterna.py
+py scripts/prepare_reform_png.py
+pyinstaller --clean --noconfirm --onefile --windowed --name DanielEtterna --icon "src/icon.ico" --add-data "src/icon.ico;." --add-data "src/nomenclatures/images;nomenclatures/images" src/daniel_etterna.py
 ```
 
-If you want the debug window instead, then paste:
+   To keep the debug console, remove `--windowed`.
 
-```cmd
-pyinstaller --clean --noconfirm --onefile --name DanielEtterna --icon=icon.ico --add-data "icon.ico;." daniel_etterna.py
-```
+   **Troubleshooting missing rank badges:** place the assets under
+   `%LOCALAPPDATA%\\DanielEtterna\\nomenclatures\\images\\` or rebuild
+   the EXE with `build_windows.bat`. A previously compiled EXE does not
+   automatically receive images uploaded to GitHub. Restart Options
+   to refresh the Images sample.
+
 
 # INSTALATION
 

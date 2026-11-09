@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "id": "Default",
+  "name": "Default",
+  "label_mode": "legacy",
+  "numeric_offset": 0,
+  "tiers": [
+    "Low",
+    "Mid",
+    "High"
+  ]
+}
