@@ -41,6 +41,24 @@ class ImageTests(unittest.TestCase):
         self.assertIs(b, a)
         self.assertEqual(sizes, [(180, 60)])
 
+    def test_transparent_padding_is_trimmed_before_scaling(self):
+        path = self.folder / "padded.webp"
+        image = Image.new("RGBA", (200, 200), (0, 0, 0, 0))
+        for x in range(75, 125):
+            for y in range(50, 150):
+                image.putpixel((x, y), (255, 255, 255, 255))
+        image.save(path, "WEBP", lossless=True)
+
+        sizes = []
+        with patch.object(
+            dan_image_renderer.ImageTk,
+            "PhotoImage",
+            side_effect=lambda img, master=None: sizes.append(img.size) or sentinel.artwork,
+        ):
+            result = dan_image_renderer.load_dan_image(path, 60)
+        self.assertIs(result, sentinel.artwork)
+        self.assertEqual(sizes, [(30, 60)])
+
     def test_invalid_webp_is_safe(self):
         path = self.folder / "bad.webp"
         path.write_bytes(b"invalid")

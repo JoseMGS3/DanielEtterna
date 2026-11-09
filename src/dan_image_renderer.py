@@ -24,13 +24,24 @@ def load_dan_image(path, height, master=None):
     try:
         if source.suffix.lower() == ".svg":
             import cairosvg
-            png = cairosvg.svg2png(bytestring=source.read_bytes(), output_height=height)
+            # Render larger than the target: original SVG viewBoxes
+            # include large transparent margins around the actual glyph.
+            png = cairosvg.svg2png(
+                bytestring=source.read_bytes(),
+                output_height=max(256, height * 4),
+            )
             art = Image.open(BytesIO(png)).convert("RGBA")
         elif source.suffix.lower() in (".webp", ".png"):
             with Image.open(source) as original:
                 art = original.convert("RGBA")
         else:
             return None
+        # Trim the invisible outer space so the badge's visible design
+        # fills the chosen line height, without changing its aspect ratio.
+        bounds = art.getchannel("A").getbbox()
+        if bounds is None:
+            return None
+        art = art.crop(bounds)
         if art.height != height:
             width = max(1, round(art.width * height / art.height))
             art = art.resize((width, height), Image.Resampling.LANCZOS)
