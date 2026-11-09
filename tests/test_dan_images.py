@@ -59,6 +59,18 @@ class ImageTests(unittest.TestCase):
         self.assertIs(result, sentinel.artwork)
         self.assertEqual(sizes, [(30, 60)])
 
+    def test_numeric_dan_png_loads_with_pillow(self):
+        path = self.folder / "10-low.png"
+        Image.new("RGBA", (100, 100), (220, 120, 60, 255)).save(path)
+        with patch.object(
+            dan_image_renderer.ImageTk, "PhotoImage",
+            return_value=sentinel.number_badge,
+        ):
+            self.assertIs(
+                dan_image_renderer.load_dan_image(path, 42),
+                sentinel.number_badge,
+            )
+
     def test_invalid_webp_is_safe(self):
         path = self.folder / "bad.webp"
         path.write_bytes(b"invalid")
