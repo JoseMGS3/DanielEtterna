@@ -1,12 +1,17 @@
 ## Version 1.1.1
 
-- Restores the main window's size and on-screen position after closing and reopening.
-- Remembers an independently resized window for each Compact, Statistics and Full layout.
-- Changes the default window sizes to Compact 550x102, Statistics 650x157 and Full 650x407.
+- Restores the main window's size and on-screen position after closing.
 - Replaces window size presets with 50%, 75%, and 100% of each layout's base size.
-- Scales the Compact and Statistics overlay text for smaller window sizes.
-- Renames the Style tab to Skins in English and Spanish.
-- Adds empty Nomenclature and Skin dropdowns for future customization.
+- Scales Compact and Statistics layout overlay text for smaller window sizes.
+- Renamed Style tab to Skins.
+- Fixed some errors
+- Adds new Nomenclatures (naming system):
+    - Default: Daniel's default naming with three subdivisions, DP: 12.08 = Low-Beta
+    - MMA: Based on LeoBlack's Mania Map Analizer naming with five subdivisions, DP: 12.08 = Beta mid
+    - --/++: Uses only dan name and a symbol with five subdivisions, DP: 12.08 = Beta--
+    - Mania tracker: Uses [Mania tracker](https://mania-tracker.com) naming with five subdivisions, DP: 12.08= Beta Low
+    - Images: Uses Mania tracker dan images and five subdivisions.
+
 
 ## Version 1.1
 
