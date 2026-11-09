@@ -123,6 +123,20 @@ class NomenclatureTests(unittest.TestCase):
             path.write_bytes(b"example")
             self.assertEqual(names.image_asset_path(12.08), path)
 
+    def test_numeric_svg_prefers_prebuilt_png_on_windows(self):
+        names.ensure_builtin_files()
+        folder = names.images_dir()
+        with patch.object(names, "image_asset_directories",
+                          return_value=(folder,)):
+            svg = folder / "10-high.svg"
+            png = folder / "10-high.png"
+            svg.write_text("<svg/>", encoding="utf-8")
+            self.assertEqual(names.image_asset_path(10.8), svg)
+            png.write_bytes(b"PNG placeholder")
+            self.assertEqual(names.image_asset_path(10.8), png)
+            self.assertEqual(names.image_asset_filename(10.8), "10-high.svg")
+            self.assertEqual(names.image_asset_status(), (1, 100))
+
     def test_images_status_counts_expected_files(self):
         names.ensure_builtin_files()
         with patch.object(names, "image_asset_directories",
