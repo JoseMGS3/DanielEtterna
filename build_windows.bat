@@ -1,7 +1,15 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-echo Building DanielEtterna with Reform Dan images...
+echo Building DanielEtterna with Reform Dans and optional XDC1 mode...
+
+echo Building XDC1 C++ engine...
+call "%~dp0build_xdc1.bat"
+if errorlevel 1 (
+    echo ERROR: XDC1 compilation failed. The 2.0 switch needs an engine executable.
+    exit /b 1
+)
+
 
 if not exist "src\nomenclatures\images\beta-low.webp" (
     echo ERROR: Reform Dan files are missing.
@@ -26,6 +34,7 @@ echo Packaging the app, SVGs, PNGs and WebP images...
 py -m PyInstaller --clean --noconfirm --onefile --windowed --name DanielEtterna ^
   --icon "src\icon.ico" ^
   --add-data "src\icon.ico;." ^
+  --add-data "src\xdc1.exe;." ^
   --add-data "src\nomenclatures\images;nomenclatures\images" ^
   src\daniel_etterna.py
 
