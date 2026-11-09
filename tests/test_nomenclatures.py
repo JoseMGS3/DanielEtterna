@@ -84,6 +84,43 @@ class NomenclatureTests(unittest.TestCase):
             ("Custom Alpha++", 11.8),
         )
 
+    def test_images_install_and_interval_classification(self):
+        self.assertIn("Images", names.available_names())
+        self.assertTrue((self.folder / "nomenclatures" / "Images.json").is_file())
+        self.assertTrue(names.images_dir().is_dir())
+        self.assertEqual(
+            names.load_profile("Images")["tiers"],
+            names.load_profile("Mania tracker")["tiers"],
+        )
+        self.assertEqual(
+            names.apply_nomenclature("Low-Beta", 12.08, "Images"),
+            ("Beta low", 12.08),
+        )
+
+    def test_images_expected_asset_filename_for_all_five_levels(self):
+        cases = {
+            1.01: "1-low.svg", 10.1: "10-low.svg",
+            10.3: "10-mid-low.svg", 10.5: "10.svg",
+            10.7: "10-mid-high.svg", 10.8: "10-high.svg",
+            11.14: "alpha-low.webp", 11.3: "alpha-mid-low.webp",
+            11.5: "alpha.webp", 11.7: "alpha-mid-high.webp",
+            11.8: "alpha-high.webp", 12.08: "beta-low.webp",
+            16.7: "zeta-mid-high.webp", 17.9: "eta-high.webp",
+            18.4: "theta.webp", 20.8: "kappa-high.webp",
+        }
+        for dp, wanted in cases.items():
+            with self.subTest(dp=dp):
+                self.assertEqual(names.image_asset_filename(dp), wanted)
+        for dp in (None, float("nan"), float("inf"), -1, 0.5, 21, "12.0", True):
+            self.assertIsNone(names.image_asset_filename(dp))
+
+    def test_images_local_upload_folder_is_used(self):
+        names.ensure_builtin_files()
+        self.assertIsNone(names.image_asset_path(12.08))
+        path = names.images_dir() / "beta-low.webp"
+        path.write_bytes(b"example")
+        self.assertEqual(names.image_asset_path(12.08), path)
+
     def test_mania_tracker_is_installed_and_selectable(self):
         self.assertEqual(
             names.available_names()[:4],
@@ -278,7 +315,7 @@ class NomenclatureTests(unittest.TestCase):
     def test_config_roundtrip_preserves_selected_nomenclature(self):
         with patch.object(config_manager, "get_config_path",
                           return_value=self.folder / "config.json"):
-            for selected in ("MMA", "--/++"):
+            for selected in ("MMA", "--/++", "Images"):
                 cfg = config_manager._merge_defaults({"nomenclature": selected})
                 self.assertEqual(cfg["nomenclature"], selected)
                 config_manager.save_config(cfg)

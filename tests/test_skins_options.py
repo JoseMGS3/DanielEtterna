@@ -1,4 +1,4 @@
-"""Regression tests for the Skins tab in DanielEtterna v1.1.1."""
+"""Skins tab regression tests: selection cards instead of dropdowns."""
 import ast
 import sys
 import unittest
@@ -6,73 +6,65 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-
 import i18n
 
 
 class SkinsOptionsTests(unittest.TestCase):
-    def test_skins_tab_name_is_identical_in_both_languages(self):
+    @staticmethod
+    def source():
+        return (ROOT / "src" / "daniel_etterna.py").read_text(encoding="utf-8")
+
+    def test_labels_are_localized(self):
         self.assertEqual(i18n.t("skins_tab", "en"), "Skins")
         self.assertEqual(i18n.t("skins_tab", "es"), "Skins")
+        self.assertIn("12.08", i18n.t("nomenclature_examples", "es"))
+        self.assertIn("imágenes", i18n.t("image_assets_hint", "es", path="images"))
 
-    def test_selector_labels(self):
-        self.assertEqual(i18n.t("nomenclature_label", "en"), "Nomenclature")
-        self.assertEqual(i18n.t("nomenclature_label", "es"), "Nomenclatura")
-        self.assertEqual(i18n.t("skin_label", "en"), "Skin")
-        self.assertEqual(i18n.t("skin_label", "es"), "Skin")
-
-    def test_nomenclature_selector_and_empty_skin_selector(self):
-        source = (ROOT / "src" / "daniel_etterna.py").read_text(encoding="utf-8")
-        module = ast.parse(source)
+    def test_cards_are_clickable_and_not_comboboxes(self):
+        source = self.source()
+        tree = ast.parse(source)
         settings = next(
-            node for node in module.body
-            if isinstance(node, ast.FunctionDef) and node.name == "open_settings"
+            x for x in tree.body
+            if isinstance(x, ast.FunctionDef) and x.name == "open_settings"
         )
-        self.assertIn('tab_buttons["skins"]', source)
-        self.assertIn('("nomenclature_label", "skin_label")', source)
+        calls = [x for x in ast.walk(settings) if isinstance(x, ast.Call)]
+        self.assertTrue(any(
+            isinstance(x.func, ast.Attribute)
+            and isinstance(x.func.value, ast.Name)
+            and x.func.value.id == "tk"
+            and x.func.attr == "Radiobutton"
+            for x in calls
+        ))
+        self.assertFalse(any(
+            isinstance(x.func, ast.Attribute)
+            and isinstance(x.func.value, ast.Name)
+            and x.func.value.id == "ttk"
+            and x.func.attr == "Combobox"
+            for x in calls
+        ))
+        self.assertIn("cards_scroll = tk.Scrollbar(", source)
+        self.assertIn("def _select_nomenclature(value):", source)
+        self.assertIn("nomenclature_var.set(value)", source)
+        self.assertIn("sample_dp = 12.08", source)
+        self.assertIn('"Low-Beta", sample_dp, name', source)
 
-        empty_dropdowns = []
-        for node in ast.walk(settings):
-            if not isinstance(node, ast.Call):
-                continue
-            func = node.func
-            if not (
-                isinstance(func, ast.Attribute)
-                and isinstance(func.value, ast.Name)
-                and func.value.id == "ttk"
-                and func.attr == "Combobox"
-            ):
-                continue
-            keywords = {item.arg: item.value for item in node.keywords}
-            values = keywords.get("values")
-            state = keywords.get("state")
-            if (
-                isinstance(values, ast.Tuple) and not values.elts
-                and isinstance(state, ast.Constant) and state.value == "readonly"
-            ):
-                empty_dropdowns.append(node)
+    def test_images_render_and_fall_back_without_changing_dp(self):
+        source = self.source()
+        self.assertIn('APP_CONFIG.get("nomenclature") == "Images"', source)
+        self.assertIn("nomenclature_manager.image_asset_path(dan_numeric)", source)
+        self.assertIn("dan_image_renderer.load_dan_image(", source)
+        self.assertIn("canvas.create_image(", source)
+        self.assertIn("if dan_photo is not None:", source)
+        self.assertIn("None if dan_photo is not None else dan_items[-1]", source)
+        self.assertIn("if text_item is not None:", source)
 
-        # The Skin selector remains empty, but Nomenclature is populated.
-        self.assertEqual(len(empty_dropdowns), 1)
-        self.assertIn("values=nomenclature_names", source)
-        self.assertIn("textvariable=nomenclature_var", source)
-        self.assertIn("nomenclature_selector.current(", source)
-        self.assertIn('selected_nomenclature = APP_CONFIG.get("nomenclature", "Default")', source)
+    def test_selection_persists_only_on_save(self):
+        source = self.source()
+        self.assertIn('"nomenclature": nomenclature_var.get(),', source)
         self.assertIn('command=_save_settings,', source)
         self.assertIn('command=_on_close,', source)
-        self.assertIn('skins_button_bar.grid(', source)
-        self.assertIn('skins_save_button = tk.Button(', source)
-        self.assertIn('skins_cancel_button = tk.Button(', source)
-        self.assertIn('nomenclature_selector.current(nomenclature_names.index(chosen))', source)
-        self.assertIn('nomenclature_selector.set(selected_nomenclature)', source)
-        self.assertIn('nomenclature_selector.set(chosen)', source)
-
-    def test_readonly_selector_uses_visible_dark_text_on_light_field(self):
-        source = (ROOT / "src" / "daniel_etterna.py").read_text(encoding="utf-8")
-        self.assertIn('fieldbackground="#FFFFFF"', source)
-        self.assertIn('foreground="#111111"', source)
-        self.assertIn('foreground=[("readonly", "#111111")]', source)
-        self.assertIn('selectforeground=[("readonly", "#111111")]', source)
+        self.assertIn("skins_save_button = tk.Button(", source)
+        self.assertIn("skins_cancel_button = tk.Button(", source)
 
 
 if __name__ == "__main__":
