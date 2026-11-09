@@ -8,11 +8,12 @@ import i18n
 
 
 DEFAULT_CONFIG = {
-    "config_version": 8,
+    "config_version": 9,
     "etterna_root": "",
     "language": i18n.DEFAULT_LANGUAGE,
     "layout": "full",
     "nomenclature": "Default",
+    "difficulty_engine": "Legacy",
     "main_window_geometry": "",
     "window_sizes": {
         "compact": {"width": 550, "height": 72},
@@ -103,6 +104,12 @@ def _merge_defaults(data):
     nomenclature = data.get("nomenclature")
     if isinstance(nomenclature, str) and nomenclature.strip():
         result["nomenclature"] = nomenclature.strip()
+
+    # Default to the old engine for every existing installation. Do not
+    # persist unexpected values from modified or outdated configs.
+    engine = data.get("difficulty_engine")
+    if engine in ("Legacy", "XDC1"):
+        result["difficulty_engine"] = engine
 
     # Each layout keeps its own user-defined dimensions.
     saved_sizes = data.get("window_sizes")
