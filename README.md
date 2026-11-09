@@ -31,67 +31,6 @@ On Linux/macOS, it will use Wine if only `src/msd.exe` is available.
 
 [MIT](LICENSE)
 
-## Nomenclature profiles (Default / MMA / --/++ / Mania tracker / Images)
-
-In **Options → Skins → Nomenclature** you can choose:
-
-- **Default** — the original DanielEtterna labels and numeric ratings, unchanged.
-- **MMA** — Mania Map Analyser's Reform/Greek names and five tiers
-  (`low`, `mid/low`, `mid`, `mid/high`, `high`).
-  Every integer is the **center** of a Dan: `11.0 → Alpha mid`,
-  `12.0 → Beta mid`. The first half of the next Dan begins at .5,
-  so `10.5 → Alpha low` and `11.5 → Beta low`. This is a half-Dan
-  shift of **naming boundaries relative to Default**, not a subtraction
-  from the displayed numeric DP. Existing old MMA.json files with a
-  `-0.5` offset are interpreted using the corrected centered scale
-  without overwriting custom Dan names.
-- **--/++** — MMA's five subdivisions shown as suffixes, with **no numeric
-  offset**: `low → --`, `mid/low → -`, `mid → (no suffix)`,
-  `mid/high → +`, `high → ++`. Examples: `9.1 → 9--`,
-  `9.5 → 9`, `9.8 → 9++`, `11.8 → Alpha++`.
-  Reform numeric Dans appear as plain numbers. Because Windows prohibits
-  `/` in filenames, the editable JSON is named `PlusMinus.json`; the
-  selector displays `--/++`.
-- **Mania tracker** — uses the same Dan names and five subdivisions
-  as MMA, with **no numeric offset** and integer-based intervals.
-  The fraction of each integer Dan determines the tier: `.00–.19 low`,
-  `.20–.39 mid/low`, `.40–.59 mid`, `.60–.79 mid/high`,
-  `.80–.99 high`. Examples: `11.14 → Alpha low` and
-  `12.08 → Beta low`. Its editable file is `Mania tracker.json`.
-  Previously installed `centered` Mania tracker files are interpreted
-  using the corrected intervals without overwriting personal edits.
-- **Images** — uses the same five subdivisions as Mania tracker. Each name
-  is replaced with an uploaded Reform badge if present, with the original
-  numeric DP alongside it. Missing images fall back to readable text.
-  The 100 Reform assets have been uploaded to `src/nomenclatures/images/`
-  on branch `v1.1.1`. A source run finds them automatically. For Windows
-  EXEs, the files must be included in the build or copied to the writable
-  `%LOCALAPPDATA%\\DanielEtterna\\nomenclatures\\images\\` directory.
-  The app also checks for assets next to the executable and in a nearby
-  Git checkout. The Skins menu displays only the selectable nomenclature
-  cards and their examples, without asset counters or folder controls.
-  The Windows build first converts numbered Dans (1–10) from SVG to PNG
-  using the Windows-compatible `svg2png-py` renderer (no native Cairo DLL).
-  At runtime, Pillow loads these generated PNGs and the Greek WebP badges.
-  The original SVG files are preserved. When running directly from Python
-  without generated PNGs, the application can render SVGs using svg2png-py.
-
-  Build from the repository root with `build_windows.bat`. The included
-  batch script creates 50 PNG images and packages those alongside the
-  100 original SVG/WebP files. You must rebuild an older EXE to get them.
-
-The settings are saved to `%LOCALAPPDATA%\\DanielEtterna\\config.json`.
-On first use, editable profile files are installed to
-`%LOCALAPPDATA%\\DanielEtterna\\nomenclatures\\`. Existing files are never
-overwritten by an update. The source templates are in
-`src/nomenclatures/`. In a one-file executable, Python fallback definitions
-ensure all built-in profiles are available even if JSON files were not bundled.
-
-Changing the nomenclature only changes the Dan label; it leaves the numeric
-rating and the underlying SR calculation unchanged. The original Daniel
-estimator still ends at Theta; additional MMA names are defined for future
-compatibility, not as support for rating charts above that limit.
-
 ## Theme compatibility
 
 DanielEtterna is currently developed and tested with Rebirth theme.
