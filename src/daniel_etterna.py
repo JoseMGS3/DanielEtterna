@@ -19,6 +19,7 @@ import config_manager
 import i18n
 import global_hotkeys
 import nomenclature_manager
+import dan_image_renderer
 
 from graph_fast import FastGraph
 
@@ -937,12 +938,14 @@ def fade_items(text_item, bar_item, start_color, end_color, steps=14):
         global current_bar_color
         if i < steps:
             color = lerp_color(start_color, end_color, i / steps)
-            canvas.itemconfig(text_item, fill=color)
+            if text_item is not None:
+                canvas.itemconfig(text_item, fill=color)
             canvas.itemconfig(bar_item, fill=color)
             current_bar_color = color
             root.after(15, lambda: _step(i + 1))
         else:
-            canvas.itemconfig(text_item, fill=end_color)
+            if text_item is not None:
+                canvas.itemconfig(text_item, fill=end_color)
             canvas.itemconfig(bar_item, fill=end_color)
             current_bar_color = end_color
             graph.set_color(end_color)
@@ -1065,7 +1068,29 @@ def update_dan_text(dan_label, dan_numeric):
     )
     xpos = 14 + pw + 8
 
-    if dan_label == "? ? ? ? ?":
+    # An Images nomenclature draws a badge instead of the Dan label.
+    # If the artwork is missing or CairoSVG cannot render an SVG, show text.
+    dan_photo = None
+    if (
+        APP_CONFIG.get("nomenclature") == "Images"
+        and not is_loading_text(dan_label)
+        and dan_label not in ("Invalid Beatmap", "? ? ? ? ?")
+        and not dan_label.startswith(("<", ">"))
+        and not is_vibro
+    ):
+        artwork = nomenclature_manager.image_asset_path(dan_numeric)
+        if artwork is not None:
+            dan_photo = dan_image_renderer.load_dan_image(
+                artwork,
+                max(18, round(48 * ui_scale)),
+                master=root,
+            )
+
+    if dan_photo is not None:
+        dan_items = [canvas.create_image(
+            xpos, y, image=dan_photo, anchor="w"
+        )]
+    elif dan_label == "? ? ? ? ?":
         dan_items = draw_outline_text(
             xpos,
             y,
@@ -1153,7 +1178,7 @@ def update_dan_text(dan_label, dan_numeric):
         and dan_label != "? ? ? ? ?"
     ):
         fade_items(
-            dan_items[-1],
+            None if dan_photo is not None else dan_items[-1],
             bar,
             current_bar_color,
             new_bar_color
@@ -1165,7 +1190,7 @@ def update_dan_text(dan_label, dan_numeric):
         )
         current_bar_color = new_bar_color
 
-        if dan_label != "? ? ? ? ?":
+        if dan_label != "? ? ? ? ?" and dan_photo is None:
             canvas.itemconfig(
                 dan_items[-1],
                 fill=fill
@@ -1985,13 +2010,10 @@ def open_settings(event=None):
 
         selected.tkraise()
         if name == "skins":
-            # Keep pending user changes when switching tabs, but ensure
-            # the readonly field always contains a visible selection.
-            chosen = nomenclature_var.get() or APP_CONFIG.get("nomenclature", "Default")
+            chosen = nomenclature_var.get()
             if chosen not in nomenclature_names:
-                chosen = "Default"
-            nomenclature_selector.current(nomenclature_names.index(chosen))
-            nomenclature_selector.set(chosen)
+                nomenclature_var.set("Default")
+            _refresh_nomenclature_cards()
 
         for tab_name, button in (
             tab_buttons.items()
@@ -2071,97 +2093,152 @@ def open_settings(event=None):
     )
 
     # --------------------------------------------------------
-    # SKINS (nomenclatures enabled; skin selector reserved for later)
+    # SKINS — always-visible selection cards, no combobox
     # --------------------------------------------------------
-    skins_tab.grid_columnconfigure(0, weight=0, minsize=170)
-    skins_tab.grid_columnconfigure(1, weight=1)
+    skins_tab.grid_columnconfigure(0, weight=1)
+    skins_tab.grid_rowconfigure(2, weight=1)
 
-    skins_heading = tk.Label(
-        skins_tab,
-        text=tr("skins_tab"),
-        bg=BG_COLOR,
-        fg=fg,
-        font=title_font,
-        anchor="w",
-    )
-    skins_heading.grid(
-        row=0, column=0, columnspan=2,
-        padx=10, pady=(4, 16), sticky="ew",
-    )
+    tk.Label(
+        skins_tab, text=tr("nomenclature_label"),
+        bg=BG_COLOR, fg=fg, font=title_font, anchor="w",
+    ).grid(row=0, column=0, padx=10, pady=(4, 3), sticky="ew")
 
-    # Windows native ttk themes may ignore a dark fieldbackground.
-    # The old white text then became invisible on a white field.
-    # Explicitly use a high-contrast light field with dark text for
-    # readonly dropdowns, including when Options is reopened.
-    selector_style = ttk.Style(win)
-    selector_style.configure(
-        "DanielEtterna.TCombobox",
-        fieldbackground="#FFFFFF",
-        background="#FFFFFF",
-        foreground="#111111",
-        arrowcolor="#111111",
-        selectbackground="#FFFFFF",
-        selectforeground="#111111",
-    )
-    selector_style.map(
-        "DanielEtterna.TCombobox",
-        fieldbackground=[("readonly", "#FFFFFF")],
-        foreground=[("readonly", "#111111")],
-        selectforeground=[("readonly", "#111111")],
-        selectbackground=[("readonly", "#FFFFFF")],
-    )
+    tk.Label(
+        skins_tab, text=tr("nomenclature_examples"),
+        bg=BG_COLOR, fg=muted, font=small_font, anchor="w",
+    ).grid(row=1, column=0, padx=10, pady=(0, 8), sticky="ew")
 
-    # Use an explicit Tk master and set the combobox index. The previous
-    # StringVar-only initialization could appear blank on some Windows themes.
     nomenclature_names = nomenclature_manager.available_names()
     selected_nomenclature = APP_CONFIG.get("nomenclature", "Default")
     if selected_nomenclature not in nomenclature_names:
         selected_nomenclature = "Default"
     nomenclature_var = tk.StringVar(master=win, value=selected_nomenclature)
 
-    for row_index, label_key in enumerate(
-        ("nomenclature_label", "skin_label"), start=1
-    ):
-        tk.Label(
-            skins_tab,
-            text=tr(label_key),
-            bg=BG_COLOR,
-            fg=fg,
+    nomenclature_list = tk.Frame(skins_tab, bg=BG_COLOR)
+    nomenclature_list.grid(
+        row=2, column=0, padx=(4, 8), sticky="nsew"
+    )
+    nomenclature_list.grid_rowconfigure(0, weight=1)
+    nomenclature_list.grid_columnconfigure(0, weight=1)
+
+    cards_canvas = tk.Canvas(
+        nomenclature_list, bg=BG_COLOR, borderwidth=0,
+        highlightthickness=0,
+    )
+    cards_scroll = tk.Scrollbar(
+        nomenclature_list, orient="vertical", command=cards_canvas.yview,
+    )
+    cards_canvas.configure(yscrollcommand=cards_scroll.set)
+    cards_canvas.grid(row=0, column=0, sticky="nsew")
+    cards_scroll.grid(row=0, column=1, sticky="ns")
+
+    cards_body = tk.Frame(cards_canvas, bg=BG_COLOR)
+    cards_window = cards_canvas.create_window(
+        (0, 0), window=cards_body, anchor="nw",
+    )
+
+    def _sync_cards_scroll_region(event=None):
+        cards_canvas.configure(scrollregion=cards_canvas.bbox("all"))
+
+    def _sync_cards_width(event):
+        cards_canvas.itemconfigure(cards_window, width=event.width)
+
+    cards_body.bind("<Configure>", _sync_cards_scroll_region)
+    cards_canvas.bind("<Configure>", _sync_cards_width)
+
+    card_widgets = {}
+    sample_dp = 12.08
+
+    def _refresh_nomenclature_cards():
+        chosen = nomenclature_var.get()
+        for key, (card, radio, preview) in card_widgets.items():
+            active = key == chosen
+            bg = "#252B38" if active else "#191919"
+            card.configure(
+                bg=bg,
+                highlightbackground="#86B6FF" if active else "#373737",
+            )
+            radio.configure(
+                bg=bg, activebackground=bg,
+                fg="#FFFFFF" if active else "#DDDDDD",
+            )
+            preview.configure(bg=bg)
+
+    def _select_nomenclature(value):
+        nomenclature_var.set(value)
+        _refresh_nomenclature_cards()
+
+    for name in nomenclature_names:
+        card = tk.Frame(
+            cards_body,
+            bg="#191919",
+            highlightbackground="#373737",
+            highlightthickness=1,
+            bd=0,
+            cursor="hand2",
+        )
+        card.pack(fill="x", padx=(6, 8), pady=4)
+
+        radio = tk.Radiobutton(
+            card,
+            text=name,
+            variable=nomenclature_var,
+            value=name,
+            command=_refresh_nomenclature_cards,
+            bg="#191919",
+            fg="#FFFFFF",
+            selectcolor="#343434",
+            activebackground="#252B38",
+            activeforeground="#FFFFFF",
             font=normal_font,
             anchor="w",
-        ).grid(row=row_index, column=0, padx=10, pady=8, sticky="w")
-
-        if label_key == "nomenclature_label":
-            selector = ttk.Combobox(
-                skins_tab,
-                textvariable=nomenclature_var,
-                values=nomenclature_names,
-                state="readonly",
-                font=normal_font,
-                style="DanielEtterna.TCombobox",
-            )
-            nomenclature_selector = selector
-            nomenclature_selector.current(
-                nomenclature_names.index(selected_nomenclature)
-            )
-            nomenclature_selector.set(selected_nomenclature)
-        else:
-            # The Skin selector is still a placeholder.
-            selector = ttk.Combobox(
-                skins_tab,
-                values=(),
-                state="readonly",
-                font=normal_font,
-                style="DanielEtterna.TCombobox",
-            )
-
-        selector.grid(
-            row=row_index, column=1,
-            padx=(0, 10), pady=8, sticky="ew",
+            cursor="hand2",
+            bd=0,
+            highlightthickness=0,
+            padx=10,
+            pady=4,
         )
+        radio.pack(fill="x", padx=(4, 4), pady=(4, 0))
 
-    # Keep room for the Save/Cancel actions at the bottom of Skins.
-    skins_tab.grid_rowconfigure(3, weight=1)
+        preview_label, preview_numeric = nomenclature_manager.apply_nomenclature(
+            "Low-Beta", sample_dp, name
+        )
+        preview_text = f"{preview_label} ({preview_numeric:.2f})"
+        image = None
+        if name == "Images":
+            path = nomenclature_manager.image_asset_path(sample_dp)
+            image = dan_image_renderer.load_dan_image(
+                path, 42, master=win
+            )
+        preview = tk.Label(
+            card,
+            text=preview_text if image is None else f"({preview_numeric:.2f})",
+            image=image,
+            compound="left",
+            bg="#191919",
+            fg=DAN_COLORS.get("Beta", "#FFFFFF"),
+            font=small_font,
+            anchor="w",
+            padx=10,
+            pady=4,
+        )
+        preview.pack(fill="x", padx=14, pady=(0, 6))
+        card_widgets[name] = (card, radio, preview)
+
+        card.bind(
+            "<Button-1>", lambda event, key=name: _select_nomenclature(key)
+        )
+        preview.bind(
+            "<Button-1>", lambda event, key=name: _select_nomenclature(key)
+        )
+    _refresh_nomenclature_cards()
+
+    tk.Label(
+        skins_tab,
+        text=tr("image_assets_hint", path="src/nomenclatures/images/"),
+        bg=BG_COLOR, fg=muted, font=tiny_font,
+        anchor="w",
+    ).grid(row=3, column=0, padx=10, pady=(6, 0), sticky="ew")
 
     # --------------------------------------------------------
     # LAYOUT RESPONSIVE - GENERAL
@@ -3046,7 +3123,7 @@ def open_settings(event=None):
         highlightthickness=0,
     )
     skins_button_bar.grid(
-        row=4, column=0, columnspan=2,
+        row=5, column=0,
         sticky="e", padx=10, pady=(7, 8),
     )
     skins_cancel_button = tk.Button(

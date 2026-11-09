@@ -1,6 +1,7 @@
 # Runtime dependencies
 numpy
 Pillow
+CairoSVG
 
 # Build dependency
 PyInstaller

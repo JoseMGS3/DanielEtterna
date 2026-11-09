@@ -14,8 +14,8 @@ buttons scale the active layout relative to its default size.
 
 The app saves the last window position when closed and maintains a separate
 custom size for every layout. Switching layouts restores each layout's last
-chosen size. The **Skins** tab (same name in English and Spanish) has empty
-**Nomenclature** and **Skin** dropdowns reserved for future options.
+chosen size. In **Skins**, every nomenclature is a selectable card with a
+sample DP; there is no dropdown. Save applies a new choice; Cancel discards it.
 
 # Keybinds 
 
@@ -42,7 +42,7 @@ On Linux/macOS, it will use Wine if only `src/msd.exe` is available.
 
 [MIT](LICENSE)
 
-## Nomenclature profiles (Default / MMA / --/++ / Mania tracker)
+## Nomenclature profiles (Default / MMA / --/++ / Mania tracker / Images)
 
 In **Options → Skins → Nomenclature** you can choose:
 
@@ -71,6 +71,16 @@ In **Options → Skins → Nomenclature** you can choose:
   `12.08 → Beta low`. Its editable file is `Mania tracker.json`.
   Previously installed `centered` Mania tracker files are interpreted
   using the corrected intervals without overwriting personal edits.
+- **Images** — uses the same five subdivisions as Mania tracker. Each name
+  is replaced with an uploaded Reform badge if present, with the original
+  numeric DP alongside it. Missing images fall back to readable text.
+  Upload your assets to `src/nomenclatures/images/` in this repository,
+  or to `%LOCALAPPDATA%\\DanielEtterna\\nomenclatures\\images\\` in a
+  compiled installation. 1–10 use SVG, alpha–kappa use WebP. CairoSVG is
+  needed to render SVG in the Tkinter overlay.
+
+  When building with PyInstaller on Windows, include the source images:
+  `--add-data "src/nomenclatures/images;nomenclatures/images"`.
 
 The settings are saved to `%LOCALAPPDATA%\\DanielEtterna\\config.json`.
 On first use, editable profile files are installed to
