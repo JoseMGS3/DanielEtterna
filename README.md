@@ -74,13 +74,19 @@ In **Options → Skins → Nomenclature** you can choose:
 - **Images** — uses the same five subdivisions as Mania tracker. Each name
   is replaced with an uploaded Reform badge if present, with the original
   numeric DP alongside it. Missing images fall back to readable text.
-  Upload your assets to `src/nomenclatures/images/` in this repository,
-  or to `%LOCALAPPDATA%\\DanielEtterna\\nomenclatures\\images\\` in a
-  compiled installation. 1–10 use SVG, alpha–kappa use WebP. CairoSVG is
-  needed to render SVG in the Tkinter overlay.
+  The 100 Reform assets have been uploaded to `src/nomenclatures/images/`
+  on branch `v1.1.1`. A source run finds them automatically. For Windows
+  EXEs, the files must be included in the build or copied to the writable
+  `%LOCALAPPDATA%\\DanielEtterna\\nomenclatures\\images\\` directory.
+  The Skins menu now reports how many images are visible to this running
+  copy of the application and includes an **Open images folder** button.
+  It also checks folders next to the executable and a nearby Git checkout.
+  SVG (Dans 1–10) needs CairoSVG and its Cairo backend, whereas Greek
+  WebP files use Pillow.
 
-  When building with PyInstaller on Windows, include the source images:
-  `--add-data "src/nomenclatures/images;nomenclatures/images"`.
+  Build from the repository root with `build_windows.bat`. The included
+  batch script packages the 100 files automatically. An EXE compiled
+  before they were uploaded will not gain them just by updating GitHub.
 
 The settings are saved to `%LOCALAPPDATA%\\DanielEtterna\\config.json`.
 On first use, editable profile files are installed to
@@ -108,17 +114,22 @@ Other themes may be compatible, but their `ScreenSelectMusic` and `ScreenGamepla
 pip install -r requirements.txt
 ```
 
-2. Open cmd on `DanielEtterna-main\src` then paste:
+2. From the **repository root**, double-click `build_windows.bat`.
+   It generates `dist/DanielEtterna.exe` with the Reform image assets.
+
+   If you prefer to build manually, run the following in the root:
 
 ```cmd
-pyinstaller --clean --noconfirm --onefile --windowed --name DanielEtterna --icon=icon.ico --add-data "icon.ico;." daniel_etterna.py
+pyinstaller --clean --noconfirm --onefile --windowed --name DanielEtterna --icon "src/icon.ico" --add-data "src/icon.ico;." --add-data "src/nomenclatures/images;nomenclatures/images" src/daniel_etterna.py
 ```
 
-If you want the debug window instead, then paste:
+   To keep the debug console, remove `--windowed`.
 
-```cmd
-pyinstaller --clean --noconfirm --onefile --name DanielEtterna --icon=icon.ico --add-data "icon.ico;." daniel_etterna.py
-```
+   **Troubleshooting missing rank badges:** in Options → Skins, use
+   **Open images folder** and copy the 100 assets there. This works for
+   existing EXEs without recompiling, provided they already implement
+   the Images nomenclature. Restart Options to refresh the sample.
+
 
 # INSTALATION
 
