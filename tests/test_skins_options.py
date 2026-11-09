@@ -35,13 +35,14 @@ class SkinsOptionsTests(unittest.TestCase):
             and x.func.attr == "Radiobutton"
             for x in calls
         ))
-        self.assertFalse(any(
+        # General retains its language dropdown; Skins must have none.
+        self.assertEqual(sum(
             isinstance(x.func, ast.Attribute)
             and isinstance(x.func.value, ast.Name)
             and x.func.value.id == "ttk"
             and x.func.attr == "Combobox"
             for x in calls
-        ))
+        ), 1)
         self.assertIn("cards_scroll = tk.Scrollbar(", source)
         self.assertIn("def _select_nomenclature(value):", source)
         self.assertIn("nomenclature_var.set(value)", source)

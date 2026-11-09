@@ -2210,6 +2210,8 @@ def open_settings(event=None):
             image = dan_image_renderer.load_dan_image(
                 path, 42, master=win
             )
+            if image is None:
+                preview_text += tr("images_missing_preview")
         preview = tk.Label(
             card,
             text=preview_text if image is None else f"({preview_numeric:.2f})",
