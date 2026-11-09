@@ -27,9 +27,13 @@ def convert(directory=IMAGE_DIR):
 
     fonts = svg2png_py.FontDatabase()
     for svg in svg_files:
-        png = bytes(svg2png_py.svg_to_png(
-            svg.read_text(encoding="utf-8"), fonts
-        ))
+        source = svg.read_text(encoding="utf-8")
+        # All Reform SVGs use a 1024x1024 viewBox without width/height.
+        # Give resvg explicit dimensions to keep the output predictable.
+        source = source.replace(
+            "<svg ", '<svg width="1024" height="1024" ', 1
+        )
+        png = bytes(svg2png_py.svg_to_png(source, fonts))
         if not png.startswith(PNG_SIGNATURE):
             raise ValueError(f"Invalid PNG generated for {svg.name}")
         svg.with_suffix(".png").write_bytes(png)
