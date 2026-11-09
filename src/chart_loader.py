@@ -1071,7 +1071,7 @@ def rate_normalized_notes(notes, rate=1.0, include_long_notes=True):
             if include_long_notes and tail != -1
             else -1
         )
-        if tail != -1 and new_tail == -1:
+        if include_long_notes and tail != -1 and new_tail == -1:
             raise ValueError(
                 "Long note tail became -1 ms after rate scaling; "
                 "shift negative timestamps before scaling"
