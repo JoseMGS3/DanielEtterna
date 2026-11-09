@@ -7,17 +7,20 @@ rem Build only the native XDC1 engine; the legacy app remains unchanged.
 where cl >nul 2>nul
 if errorlevel 1 (
     set "VCVARS="
-    for %%E in (BuildTools Community Professional Enterprise) do (
-        if not defined VCVARS if exist "%ProgramFiles%\Microsoft Visual Studio\2022\%%E\VC\Auxiliary\Build\vcvars64.bat" (
-            set "VCVARS=%ProgramFiles%\Microsoft Visual Studio\2022\%%E\VC\Auxiliary\Build\vcvars64.bat"
-        )
-        if not defined VCVARS if exist "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\%%E\VC\Auxiliary\Build\vcvars64.bat" (
-            set "VCVARS=%ProgramFiles(x86)%\Microsoft Visual Studio\2022\%%E\VC\Auxiliary\Build\vcvars64.bat"
+    rem Visual Studio 2026 installs under "18"; VS 2022 under "2022".
+    for %%V in (18 2022) do (
+        for %%E in (BuildTools Community Professional Enterprise) do (
+            if not defined VCVARS if exist "%ProgramFiles%\Microsoft Visual Studio\%%V\%%E\VC\Auxiliary\Build\vcvars64.bat" (
+                set "VCVARS=%ProgramFiles%\Microsoft Visual Studio\%%V\%%E\VC\Auxiliary\Build\vcvars64.bat"
+            )
+            if not defined VCVARS if exist "%ProgramFiles(x86)%\Microsoft Visual Studio\%%V\%%E\VC\Auxiliary\Build\vcvars64.bat" (
+                set "VCVARS=%ProgramFiles(x86)%\Microsoft Visual Studio\%%V\%%E\VC\Auxiliary\Build\vcvars64.bat"
+            )
         )
     )
     if not defined VCVARS (
-        echo ERROR: MSVC C++ 2022 Build Tools not found.
-        echo Install Visual Studio 2022 Build Tools with Desktop development with C++.
+        echo ERROR: MSVC C++ Build Tools not found (Visual Studio 2022/2026).
+        echo Install Visual Studio Build Tools with Desktop development with C++.
         exit /b 1
     )
     call "%VCVARS%" >nul
