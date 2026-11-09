@@ -271,6 +271,12 @@ def image_asset_path(dp):
         return None
     for folder in image_asset_directories():
         target = folder / name
+        # At build time the 50 SVG graphics are rasterized into PNG,
+        # avoiding any Cairo DLL requirement in the Windows executable.
+        if target.suffix == ".svg":
+            png = target.with_suffix(".png")
+            if png.is_file():
+                return png
         if target.is_file():
             return target
     return None
