@@ -167,6 +167,19 @@ class NormalizedChartTests(unittest.TestCase):
             [(0, 133, 533)],
         )
 
+    def test_hold_end_must_not_be_confused_with_tap_sentinel(self):
+        data = self.sm(
+            "2000\n0000\n3000\n0000",
+            timing="#OFFSET:1.001;\n",
+        )
+        with self.assertRaisesRegex(ValueError, "reserved tap marker"):
+            loader.normalize_chart_notes(data, data["charts"][0])
+
+        with self.assertRaisesRegex(ValueError, "after rate scaling"):
+            loader.rate_normalized_notes(
+                [(0, -3, -2)], rate=2.0
+            )
+
     def test_invalid_rates_rejected(self):
         for rate in (0.0, -1.0, float("nan"), float("inf")):
             with self.subTest(rate=rate):
