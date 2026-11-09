@@ -1005,6 +1005,11 @@ def _normalize_stepmania_chart(data, chart):
     for column, head_beat, tail_beat in events:
         head_ms = beat_ms(head_beat)
         tail_ms = beat_ms(tail_beat) if tail_beat >= 0 else -1
+        if tail_beat >= 0 and tail_ms == -1:
+            # -1 is reserved for taps; do not silently lose an LN.
+            raise ValueError(
+                "A hold tail falls at -1 ms (reserved tap marker)"
+            )
         if tail_beat >= 0 and tail_ms < head_ms:
             raise ValueError(
                 f"Hold has a negative duration in column {column}"
@@ -1066,6 +1071,11 @@ def rate_normalized_notes(notes, rate=1.0, include_long_notes=True):
             if include_long_notes and tail != -1
             else -1
         )
+        if tail != -1 and new_tail == -1:
+            raise ValueError(
+                "Long note tail became -1 ms after rate scaling; "
+                "shift negative timestamps before scaling"
+            )
         if new_tail != -1 and new_tail < new_head:
             new_tail = -1
         result.append((column, new_head, new_tail))
