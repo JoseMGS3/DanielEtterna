@@ -15,3 +15,9 @@ jobs:
           python-version: '3.12'
       - name: Check chart normalization
         run: python -m unittest discover -s tests -p "test_chart_normalization.py" -v
+      - name: Check Python syntax
+        run: python -m py_compile src/daniel_etterna.py src/config_manager.py src/i18n.py src/xdc1_adapter.py
+      - name: Verify expandable difficulty-engine settings
+        run: python -m unittest discover -s tests -p "test_difficulty_engine_settings.py" -v
+      - name: Verify existing Skins tab
+        run: python -m unittest discover -s tests -p "test_skins_options.py" -v
