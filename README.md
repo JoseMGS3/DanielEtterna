@@ -78,9 +78,9 @@ In **Options → Skins → Nomenclature** you can choose:
   on branch `v1.1.1`. A source run finds them automatically. For Windows
   EXEs, the files must be included in the build or copied to the writable
   `%LOCALAPPDATA%\\DanielEtterna\\nomenclatures\\images\\` directory.
-  The Skins menu now reports how many images are visible to this running
-  copy of the application and includes an **Open images folder** button.
-  It also checks folders next to the executable and a nearby Git checkout.
+  The app also checks for assets next to the executable and in a nearby
+  Git checkout. The Skins menu displays only the selectable nomenclature
+  cards and their examples, without asset counters or folder controls.
   The Windows build first converts numbered Dans (1–10) from SVG to PNG
   using the Windows-compatible `svg2png-py` renderer (no native Cairo DLL).
   At runtime, Pillow loads these generated PNGs and the Greek WebP badges.
@@ -130,10 +130,11 @@ pyinstaller --clean --noconfirm --onefile --windowed --name DanielEtterna --icon
 
    To keep the debug console, remove `--windowed`.
 
-   **Troubleshooting missing rank badges:** in Options → Skins, use
-   **Open images folder** and copy the 100 assets there. This works for
-   existing EXEs without recompiling, provided they already implement
-   the Images nomenclature. Restart Options to refresh the sample.
+   **Troubleshooting missing rank badges:** place the assets under
+   `%LOCALAPPDATA%\\DanielEtterna\\nomenclatures\\images\\` or rebuild
+   the EXE with `build_windows.bat`. A previously compiled EXE does not
+   automatically receive images uploaded to GitHub. Restart Options
+   to refresh the Images sample.
 
 
 # INSTALATION

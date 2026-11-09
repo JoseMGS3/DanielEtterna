@@ -18,7 +18,6 @@ class SkinsOptionsTests(unittest.TestCase):
         self.assertEqual(i18n.t("skins_tab", "en"), "Skins")
         self.assertEqual(i18n.t("skins_tab", "es"), "Skins")
         self.assertIn("12.08", i18n.t("nomenclature_examples", "es"))
-        self.assertIn("imágenes", i18n.t("image_assets_hint", "es", path="images"))
 
     def test_cards_are_clickable_and_not_comboboxes(self):
         source = self.source()
@@ -58,9 +57,12 @@ class SkinsOptionsTests(unittest.TestCase):
         self.assertIn("if dan_photo is not None:", source)
         self.assertIn("None if dan_photo is not None else dan_items[-1]", source)
         self.assertIn("if text_item is not None:", source)
-        self.assertIn("nomenclature_manager.image_asset_status()", source)
-        self.assertIn("command=_open_images_folder,", source)
-        self.assertIn("str(nomenclature_manager.images_dir())", source)
+        self.assertNotIn("image_status_row =", source)
+        self.assertNotIn("images_open_button =", source)
+        self.assertNotIn("images_folder_hint =", source)
+        self.assertNotIn('tr("images_detected"', source)
+        self.assertNotIn('tr("image_assets_hint"', source)
+        self.assertIn("    skins_button_bar.grid(\n        row=3, column=0,", source)
 
     def test_selection_persists_only_on_save(self):
         source = self.source()
