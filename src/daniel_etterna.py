@@ -20,6 +20,7 @@ import i18n
 import global_hotkeys
 import nomenclature_manager
 import dan_image_renderer
+import xdc1_adapter
 
 from graph_fast import FastGraph
 
@@ -2000,8 +2001,11 @@ def open_settings(event=None):
         )
 
     tab_buttons = {}
+    active_settings_tab = "general"
 
     def _show_settings_tab(name):
+        nonlocal active_settings_tab
+        active_settings_tab = name
         selected = (
             general_tab
             if name == "general"
@@ -2235,35 +2239,80 @@ def open_settings(event=None):
         )
     _refresh_nomenclature_cards()
 
+    # General has a scrollable content frame: expanding the engine
+    # accordion must never hide the Save/Cancel controls on 620px windows.
+    general_canvas = tk.Canvas(
+        general_tab, bg=BG_COLOR, bd=0, highlightthickness=0,
+    )
+    general_scrollbar = tk.Scrollbar(
+        general_tab, orient="vertical", command=general_canvas.yview,
+    )
+    general_canvas.configure(yscrollcommand=general_scrollbar.set)
+    general_canvas.pack(side="left", fill="both", expand=True)
+    general_scrollbar.pack(side="right", fill="y")
+    general_content = tk.Frame(general_canvas, bg=BG_COLOR)
+    general_window = general_canvas.create_window(
+        (0, 0), window=general_content, anchor="nw",
+    )
+
+    def _resize_general_content(event=None):
+        general_canvas.configure(
+            scrollregion=general_canvas.bbox("all"),
+        )
+
+    def _resize_general_canvas(event):
+        general_canvas.itemconfigure(
+            general_window, width=event.width,
+        )
+
+    general_content.bind("<Configure>", _resize_general_content)
+    general_canvas.bind("<Configure>", _resize_general_canvas)
+
+    def _scroll_general(event):
+        # Tk handles the event on the top-level bindtag of child widgets.
+        # Do not steal scrolling from the separate Skins tab.
+        if active_settings_tab != "general":
+            return
+        if getattr(event, "num", None) == 4:
+            step = -1
+        elif getattr(event, "num", None) == 5:
+            step = 1
+        else:
+            delta = getattr(event, "delta", 0)
+            if not delta:
+                return
+            step = -1 if delta > 0 else 1
+        general_canvas.yview_scroll(step, "units")
+
+    win.bind("<MouseWheel>", _scroll_general, add="+")
+    win.bind("<Button-4>", _scroll_general, add="+")
+    win.bind("<Button-5>", _scroll_general, add="+")
+
     # --------------------------------------------------------
     # LAYOUT RESPONSIVE - GENERAL
     # --------------------------------------------------------
     # Grid permite que los controles cambien de posición y ancho
     # junto con la ventana, en vez de quedarse en coordenadas fijas.
-    general_tab.grid_columnconfigure(
+    general_content.grid_columnconfigure(
         0,
         weight=0,
         minsize=145,
     )
-    general_tab.grid_columnconfigure(
+    general_content.grid_columnconfigure(
         1,
         weight=1,
     )
-    general_tab.grid_columnconfigure(
+    general_content.grid_columnconfigure(
         2,
         weight=0,
         minsize=120,
     )
 
-    # El espacio central crece verticalmente para mantener los
-    # créditos y botones anclados hacia la parte inferior.
-    general_tab.grid_rowconfigure(
-        14,
-        weight=1,
-    )
+    # Row 14 is the collapsible engine selector; scrolling handles overflow.
+    general_content.grid_rowconfigure(14, weight=0)
 
     settings_heading = tk.Label(
-        general_tab,
+        general_content,
         text=tr("settings_heading"),
         bg=BG_COLOR,
         fg=fg,
@@ -2283,7 +2332,7 @@ def open_settings(event=None):
     # IDIOMA
     # --------------------------------------------------------
     language_label = tk.Label(
-        general_tab,
+        general_content,
         text=tr("language"),
         bg=BG_COLOR,
         fg=fg,
@@ -2305,7 +2354,7 @@ def open_settings(event=None):
     )
 
     language_combo = ttk.Combobox(
-        general_tab,
+        general_content,
         textvariable=language_var,
         values=list(
             i18n.SUPPORTED_LANGUAGES.values()
@@ -2322,7 +2371,7 @@ def open_settings(event=None):
     )
 
     language_hint = tk.Label(
-        general_tab,
+        general_content,
         text=tr("language_hint"),
         bg=BG_COLOR,
         fg=muted,
@@ -2343,7 +2392,7 @@ def open_settings(event=None):
     # RUTA ETTERNA
     # --------------------------------------------------------
     path_label = tk.Label(
-        general_tab,
+        general_content,
         text=tr("etterna_path"),
         bg=BG_COLOR,
         fg=fg,
@@ -2369,7 +2418,7 @@ def open_settings(event=None):
     )
 
     path_entry = tk.Entry(
-        general_tab,
+        general_content,
         textvariable=path_var,
         bg=entry_bg,
         fg=fg,
@@ -2414,7 +2463,7 @@ def open_settings(event=None):
             )
 
     browse_button = tk.Button(
-        general_tab,
+        general_content,
         text=tr("browse"),
         command=_browse_etterna,
         bg=button_bg,
@@ -2435,7 +2484,7 @@ def open_settings(event=None):
     )
 
     path_hint = tk.Label(
-        general_tab,
+        general_content,
         text=tr("path_hint"),
         bg=BG_COLOR,
         fg=muted,
@@ -2456,7 +2505,7 @@ def open_settings(event=None):
     # TAMAÑO DE VENTANA
     # --------------------------------------------------------
     window_size_label = tk.Label(
-        general_tab,
+        general_content,
         text=tr("window_size"),
         bg=BG_COLOR,
         fg=fg,
@@ -2472,7 +2521,7 @@ def open_settings(event=None):
     )
 
     size_button_frame = tk.Frame(
-        general_tab,
+        general_content,
         bg=BG_COLOR,
         bd=0,
         highlightthickness=0,
@@ -2557,7 +2606,7 @@ def open_settings(event=None):
     )
 
     global_hotkeys_check = tk.Checkbutton(
-        general_tab,
+        general_content,
         text=tr("global_hotkeys"),
         variable=global_hotkeys_var,
         onvalue=True,
@@ -2588,7 +2637,7 @@ def open_settings(event=None):
     )
 
     global_hotkeys_hint = tk.Label(
-        general_tab,
+        general_content,
         text=tr("global_hotkeys_hint"),
         bg=BG_COLOR,
         fg=muted,
@@ -2609,7 +2658,7 @@ def open_settings(event=None):
     # KEYBINDS
     # --------------------------------------------------------
     keybinds_label = tk.Label(
-        general_tab,
+        general_content,
         text=tr("keybinds"),
         bg=BG_COLOR,
         fg=fg,
@@ -2626,7 +2675,7 @@ def open_settings(event=None):
     )
 
     keybind_hint = tk.Label(
-        general_tab,
+        general_content,
         text=tr("keybind_hint"),
         bg=BG_COLOR,
         fg=muted,
@@ -2679,7 +2728,7 @@ def open_settings(event=None):
         row = 11 + index
 
         key_label = tk.Label(
-            general_tab,
+            general_content,
             text=label,
             bg=BG_COLOR,
             fg=fg,
@@ -2699,7 +2748,7 @@ def open_settings(event=None):
 
         key_entries[action] = (
             _make_key_capture_entry(
-                parent=general_tab,
+                parent=general_content,
                 variable=key_vars[action],
                 x=0,
                 y=0,
@@ -2734,7 +2783,7 @@ def open_settings(event=None):
             )
 
     restore_button = tk.Button(
-        general_tab,
+        general_content,
         text=tr("restore_keybinds"),
         command=_restore_defaults,
         bg=button_bg,
@@ -2755,15 +2804,93 @@ def open_settings(event=None):
     )
 
     # --------------------------------------------------------
+    # MOTOR DE DIFICULTAD — ACCORDION
+    # --------------------------------------------------------
+    engine_var = tk.StringVar(
+        value=APP_CONFIG.get("difficulty_engine", "Legacy"),
+    )
+    engine_panel = tk.Frame(
+        general_content, bg="#141414",
+        highlightbackground="#353535", highlightthickness=1, bd=0,
+    )
+    engine_panel.grid(
+        row=14, column=0, columnspan=3, sticky="ew",
+        padx=10, pady=(12, 5),
+    )
+
+    engine_body = tk.Frame(engine_panel, bg="#141414")
+    engine_expanded = False
+
+    def _update_engine_title():
+        caret = "▾" if engine_expanded else "▸"
+        engine_header.configure(
+            text=f"{caret}  {tr('difficulty_engine')}  ·  {engine_var.get()}",
+        )
+
+    def _toggle_engine_section():
+        nonlocal engine_expanded
+        engine_expanded = not engine_expanded
+        if engine_expanded:
+            engine_body.pack(fill="x", padx=12, pady=(0, 10))
+        else:
+            engine_body.pack_forget()
+        _update_engine_title()
+
+    engine_header = tk.Button(
+        engine_panel, bg="#202020", fg=fg,
+        activebackground="#303030", activeforeground=fg,
+        highlightthickness=0, relief="flat", bd=0,
+        anchor="w", font=normal_font,
+        padx=12, pady=11, cursor="hand2",
+        command=_toggle_engine_section,
+    )
+    engine_header.pack(fill="x")
+    engine_var.trace_add("write", lambda *_: _update_engine_title())
+    _update_engine_title()
+
+    for option_index, (engine_key, description_key) in enumerate((
+        ("Legacy", "engine_legacy_description"),
+        ("XDC1", "engine_xdc1_description"),
+    )):
+        engine_radio = tk.Radiobutton(
+            engine_body, text=tr("engine_" + engine_key.lower()),
+            value=engine_key, variable=engine_var,
+            bg="#141414", fg=fg, selectcolor="#252525",
+            activebackground="#141414", activeforeground=fg,
+            font=normal_font, anchor="w", bd=0,
+            highlightthickness=0,
+        )
+        engine_radio.grid(
+            row=option_index * 2, column=0, sticky="ew", pady=(6, 0),
+        )
+        engine_description = tk.Label(
+            engine_body, text=tr(description_key),
+            bg="#141414", fg=muted, font=small_font,
+            anchor="w", justify="left", wraplength=500,
+        )
+        engine_description.grid(
+            row=option_index * 2 + 1, column=0,
+            sticky="ew", padx=(24, 0),
+        )
+
+    engine_hint = tk.Label(
+        engine_body, text=tr("engine_settings_hint"),
+        bg="#141414", fg="#999999", font=small_font,
+        justify="left", anchor="w", wraplength=510,
+    )
+    engine_hint.grid(row=4, column=0, sticky="ew", pady=(9, 0))
+    engine_body.grid_columnconfigure(0, weight=1)
+
+    # --------------------------------------------------------
     # CREDITS / FOOTER
     # --------------------------------------------------------
     credits_separator = tk.Frame(
-        general_tab,
+        general_content,
         bg="#404040",
         height=1,
     )
     credits_separator.grid(
-        row=15,
+        row=16,
         column=0,
         columnspan=3,
         sticky="ew",
@@ -2772,7 +2899,7 @@ def open_settings(event=None):
     )
 
     credit_one = tk.Label(
-        general_tab,
+        general_content,
         text="Daniel by TheBagelOfMan.",
         bg=BG_COLOR,
         fg="#888888",
@@ -2780,23 +2907,6 @@ def open_settings(event=None):
         anchor="center",
     )
     credit_one.grid(
-        row=16,
-        column=0,
-        columnspan=3,
-        sticky="ew",
-        padx=10,
-        pady=1,
-    )
-
-    credit_two = tk.Label(
-        general_tab,
-        text="Vibecoded (sorry) port by JoseMGS.",
-        bg=BG_COLOR,
-        fg="#888888",
-        font=small_font,
-        anchor="center",
-    )
-    credit_two.grid(
         row=17,
         column=0,
         columnspan=3,
@@ -2805,8 +2915,25 @@ def open_settings(event=None):
         pady=1,
     )
 
+    credit_two = tk.Label(
+        general_content,
+        text="Vibecoded (sorry) port by JoseMGS.",
+        bg=BG_COLOR,
+        fg="#888888",
+        font=small_font,
+        anchor="center",
+    )
+    credit_two.grid(
+        row=18,
+        column=0,
+        columnspan=3,
+        sticky="ew",
+        padx=10,
+        pady=1,
+    )
+
     credit_three = tk.Label(
-        general_tab,
+        general_content,
         text="Dan brainrot is spreading",
         bg=BG_COLOR,
         fg="#666666",
@@ -2814,7 +2941,7 @@ def open_settings(event=None):
         anchor="center",
     )
     credit_three.grid(
-        row=18,
+        row=19,
         column=0,
         columnspan=3,
         sticky="ew",
@@ -2827,7 +2954,7 @@ def open_settings(event=None):
     )
 
     config_path_label = tk.Label(
-        general_tab,
+        general_content,
         text=tr(
             "config_path",
             path=config_path_text,
@@ -2839,7 +2966,7 @@ def open_settings(event=None):
         justify="left",
     )
     config_path_label.grid(
-        row=19,
+        row=20,
         column=0,
         columnspan=3,
         sticky="ew",
@@ -2911,7 +3038,7 @@ def open_settings(event=None):
         global current_global_hotkeys
         global current_language
         global _last_dan_label, _last_dan_numeric
-        global _settings_window
+        global _settings_window, last_state, _last_sr
 
         proposed_language = (
             i18n.language_code_from_name(
@@ -2974,6 +3101,17 @@ def open_settings(event=None):
             global_hotkeys_var.get()
         )
 
+        if engine_var.get() == "XDC1":
+            try:
+                xdc1_adapter.resolve_xdc1_binary()
+            except FileNotFoundError as exc:
+                messagebox.showerror(
+                    i18n.t("engine_missing_title", proposed_language),
+                    i18n.t("engine_missing_message", proposed_language, error=exc),
+                    parent=win,
+                )
+                return
+
         # Saving Options must not discard sizes set on the main window.
         _remember_main_window_size()
 
@@ -2983,6 +3121,7 @@ def open_settings(event=None):
             "config_version": config_manager.DEFAULT_CONFIG["config_version"],
             "layout": MODE_NAMES[current_mode],
             "nomenclature": nomenclature_var.get(),
+            "difficulty_engine": engine_var.get(),
             "main_window_geometry": APP_CONFIG.get("main_window_geometry", ""),
             "window_sizes": dict(APP_CONFIG.get("window_sizes", {})),
             "global_hotkeys": proposed_global_hotkeys,
@@ -3007,7 +3146,14 @@ def open_settings(event=None):
             )
             return
 
+        engine_changed = (
+            APP_CONFIG.get("difficulty_engine", "Legacy")
+            != new_config["difficulty_engine"]
+        )
         APP_CONFIG = new_config
+        if engine_changed:
+            last_state = None
+            _last_sr = None
         current_language = (
             proposed_language
         )
@@ -3044,6 +3190,8 @@ def open_settings(event=None):
             # nomenclature changes; no chart reparse or SR recalculation.
             if _last_sr is not None:
                 _last_dan_label, _last_dan_numeric = get_dan_from_diff(_last_sr)
+            if engine_changed:
+                _last_dan_label, _last_dan_numeric = ".", ""
             update_dan_text(
                 _last_dan_label,
                 _last_dan_numeric,
@@ -3058,13 +3206,13 @@ def open_settings(event=None):
         win.destroy()
 
     button_bar = tk.Frame(
-        general_tab,
+        general_content,
         bg=BG_COLOR,
         bd=0,
         highlightthickness=0,
     )
     button_bar.grid(
-        row=20,
+        row=21,
         column=0,
         columnspan=3,
         sticky="e",
@@ -3160,6 +3308,7 @@ def open_settings(event=None):
         path_hint,
         global_hotkeys_hint,
         keybind_hint,
+        engine_hint,
         config_path_label,
     )
 
@@ -3293,6 +3442,11 @@ def open_settings(event=None):
             label.configure(
                 wraplength=wrap
             )
+
+        for description in engine_body.winfo_children():
+            if isinstance(description, tk.Label):
+                description.configure(wraplength=max(260, wrap - 45))
+
 
         # Ajustar márgenes exteriores de manera proporcional.
         outer_pad = max(
