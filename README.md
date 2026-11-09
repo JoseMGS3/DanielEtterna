@@ -45,9 +45,7 @@ Other themes may be compatible, but their `ScreenSelectMusic` and `ScreenGamepla
 pip install -r requirements.txt
 ```
 
-2. From the **repository root**, double-click `build_windows.bat`.
-   It installs the Windows SVG renderer, converts the 50 numbered SVGs to
-   PNG and generates `dist/DanielEtterna.exe` with all rank artwork.
+2. Execute `build_windows.bat`. It converts the 50 numbered SVGs to PNG and generates `dist/DanielEtterna.exe` all ready.
 
    If you prefer to build manually, run the following in the root:
 
