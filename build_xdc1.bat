@@ -1,5 +1,5 @@
 @echo off
-setlocal EnableExtensions
+setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 set "ROOT_DIR=%CD%"
 
@@ -23,7 +23,7 @@ if errorlevel 1 (
         echo Install Visual Studio Build Tools with Desktop development with C++.
         exit /b 1
     )
-    call "%VCVARS%" >nul
+    call "!VCVARS!" >nul
     if errorlevel 1 exit /b 1
 )
 
