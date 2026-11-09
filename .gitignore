@@ -89,3 +89,6 @@ DanielGameplay.txt
 
 # Build-time numbered Reform PNGs; original SVGs remain versioned.
 /src/nomenclatures/images/*.png
+
+# Linux native XDC1 build output (no filename extension).
+/src/xdc1
