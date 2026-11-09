@@ -815,7 +815,11 @@ def get_relevant_skillsets(msd_result):
     relevant = {k: v for k, v in msd_result.items() if k != "overall" and (overall - v) <= threshold}
     top3 = sorted(relevant.items(), key=lambda x: x[1], reverse=True)[:3]
     jackspeed = msd_result.get("jackspeed", 0)
-    is_vibro = (overall > 0) and (jackspeed / overall >= VIBRO_JACKSPEED_THRESHOLD)
+    is_vibro = (
+        APP_CONFIG.get("difficulty_engine", "Legacy") == "Legacy"
+        and (overall > 0)
+        and (jackspeed / overall >= VIBRO_JACKSPEED_THRESHOLD)
+    )
     return overall, top3, is_vibro
 
 
@@ -841,9 +845,10 @@ def draw_msd(msd_result, color):
     )
 
     if msd_result is None:
-        text = i18n.t(
-            "msd_error",
-            current_language
+        text = (
+            i18n.t("xdc1_error", current_language)
+            if APP_CONFIG.get("difficulty_engine") == "XDC1"
+            else i18n.t("msd_error", current_language)
         )
 
         font = _fit_font_to_width(
@@ -865,6 +870,13 @@ def draw_msd(msd_result, color):
     overall, top3, _ = get_relevant_skillsets(
         msd_result
     )
+    if APP_CONFIG.get("difficulty_engine") == "XDC1":
+        top3 = sorted(
+            ((k, v) for k, v in msd_result.items()
+             if k != "overall" and v > 0),
+            key=lambda pair: pair[1],
+            reverse=True,
+        )[:3]
 
     if not top3:
         return
@@ -875,8 +887,10 @@ def draw_msd(msd_result, color):
     )
 
     text = (
-        f"{skillset_str}  "
-        f"{overall:.2f}MSD"
+        f"{skillset_str}  {_last_sr:.2f} Dan"
+        if APP_CONFIG.get("difficulty_engine") == "XDC1"
+        and isinstance(_last_sr, (int, float))
+        else f"{skillset_str}  {overall:.2f}MSD"
     )
 
     font = _fit_font_to_width(
@@ -4721,7 +4735,8 @@ def calculation_loop():
                 current_difficulty,
                 current_meter,
                 current_description,
-                current_rate
+                current_rate,
+                APP_CONFIG.get("difficulty_engine", "Legacy"),
             )
 
 
@@ -4730,7 +4745,8 @@ def calculation_loop():
             difficulty,
             meter,
             description,
-            rate
+            rate,
+            difficulty_engine,
         ) = state
 
 
@@ -4931,33 +4947,39 @@ def calculation_loop():
                 )
 
 
-            # =================================================
-            # APLICAR RATE
-            # =================================================
-
-            rated_notes = (
-                apply_etterna_rate(
-                    notes,
-                    rate
+            # The selected engine runs on the same Etterna chart and rate.
+            # Legacy remains byte-for-byte the old calculation path.
+            if difficulty_engine == "XDC1":
+                normalized_notes = chart_loader.normalize_chart_notes(
+                    data, selected if extension in (".sm", ".ssc") else None,
                 )
-            )
-
-
-            # =================================================
-            # DANIEL / SUNNY
-            # =================================================
-
-            (
-                SR,
-                times,
-                strain,
-                factors
-            ) = algorithm.calculate_notes(
-                notes=rated_notes,
-                keycount=4,
-                mod="NM",
-                od=od
-            )
+                rated_normalized = chart_loader.rate_normalized_notes(
+                    normalized_notes, rate=rate, include_long_notes=True,
+                )
+                xdc1_result = xdc1_adapter.analyze_notes(rated_normalized)
+                SR = xdc1_result["rating"]
+                times = np.asarray(xdc1_result["grid"], dtype=float)
+                # Reuse the established graph smoothing and pause handling.
+                raw_strain = np.asarray(
+                    xdc1_result["strain_rested"], dtype=float,
+                )
+                graph_note_seq = [
+                    (col, head) for col, head, tail in rated_normalized
+                ]
+                enveloped_strain = algorithm._apply_proximity_envelope(
+                    times, raw_strain, graph_note_seq,
+                )
+                strain = algorithm.smooth_D_for_graph(
+                    times, enveloped_strain, graph_note_seq,
+                )
+                factors = {}
+            else:
+                # Original Sunny / legacy engine, including its OD handling.
+                rated_notes = apply_etterna_rate(notes, rate)
+                SR, times, strain, factors = algorithm.calculate_notes(
+                    notes=rated_notes, keycount=4, mod="NM", od=od,
+                )
+                xdc1_result = None
 
 
             t_arr = np.asarray(
@@ -4982,21 +5004,22 @@ def calculation_loop():
             # =================================================
 
             with lock:
-
-                if current_native_msd is not None:
-
-                    msd_result = (
-                        current_native_msd.copy()
-                    )
-
+                if difficulty_engine == "XDC1":
+                    # XDC1 skillsets are a separate metric from Etterna MSD.
+                    msd_result = {
+                        "overall": xdc1_result["rating_raw"],
+                        **xdc1_result["skillsets_raw"],
+                    }
+                elif current_native_msd is not None:
+                    msd_result = current_native_msd.copy()
                 else:
-
                     msd_result = None
 
 
             print()
             print(
-                "[Etterna Native MSD]"
+                "[XDC1 Skillsets]" if difficulty_engine == "XDC1"
+                else "[Etterna Native MSD]"
             )
 
 
@@ -5029,10 +5052,8 @@ def calculation_loop():
             # =================================================
 
             averages = (
-                algorithm.factor_averages(
-                    times,
-                    factors
-                )
+                algorithm.factor_averages(times, factors)
+                if difficulty_engine == "Legacy" else {}
             )
 
 
@@ -5050,7 +5071,7 @@ def calculation_loop():
 
             print()
             print(
-                "[Map Factors]"
+                "[XDC1]" if difficulty_engine == "XDC1" else "[Map Factors]"
             )
 
             for k, v in averages.items():
@@ -5061,7 +5082,8 @@ def calculation_loop():
 
 
             print(
-                f"SR    : {SR:.4f}★"
+                f"Dan rating: {SR:.4f}" if difficulty_engine == "XDC1"
+                else f"SR    : {SR:.4f}★"
             )
 
             print(
@@ -5321,9 +5343,71 @@ def _get_default_dan_from_diff(diff):
     return "? ? ? ? ?", "N/A"
 
 
+_XDC1_DAN_MEANS = {
+    "4th": 3.74, "5th": 5.62, "6th": 6.54, "7th": 7.44,
+    "8th": 9.00, "9th": 9.45, "10th": 10.30,
+    "Alpha": 11.28, "Beta": 12.04, "Gamma": 13.11,
+    "Delta": 13.97, "Epsilon": 15.12, "Zeta": 15.71,
+    "Eta": 16.98, "Theta": 18.21, "Iota": 19.00,
+    "Kappa": 19.60,
+}
+
+
+def _get_xdc1_default_dan_from_diff(diff):
+    """Map a calibrated XDC1 Dan rating onto the original Daniel tiers.
+
+    Mirrors upstream Daniel 2.x mean/threshold logic. The numeric value
+    (4 + index + fraction) is consumed by existing Skins and badge logic.
+    """
+    names = tuple(_XDC1_DAN_MEANS)
+    means = tuple(_XDC1_DAN_MEANS.values())
+    boundaries = [
+        (
+            (means[i - 1] + mean) / 2 if i
+            else mean - ((means[1] - mean) / 2),
+            (mean + means[i + 1]) / 2 if i < len(means) - 1
+            else mean + ((mean - means[i - 1]) / 2),
+        )
+        for i, mean in enumerate(means)
+    ]
+    if diff >= boundaries[-1][1]:
+        return "? ? ? ? ?", "N/A"
+    if diff < boundaries[0][0]:
+        lower, upper = boundaries[0]
+        numeric = 4 + ((diff - lower) / (upper - lower))
+        if numeric < 1:
+            return "<1st", round(max(0.0, numeric), 2)
+        ordinal = int(numeric)
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(ordinal, "th")
+        fraction = numeric - ordinal
+        tier = "Low" if fraction < 1 / 3 else (
+            "Mid" if fraction < 2 / 3 else "High"
+        )
+        return f"{tier}-{ordinal}{suffix}", round(numeric, 2)
+
+    for i, (lower, upper) in enumerate(boundaries):
+        if lower <= diff < upper:
+            mean = means[i]
+            t = (
+                0.5 * (diff - lower) / (mean - lower)
+                if diff < mean
+                else 0.5 + 0.5 * (diff - mean) / (upper - mean)
+            )
+            t = max(0.0, min(t, 1.0))
+            numeric = round(4 + i + t, 2)
+            tier = "Low" if t < 1 / 3 else (
+                "Mid" if t < 2 / 3 else "High"
+            )
+            return f"{tier}-{names[i]}", numeric
+    return "? ? ? ? ?", "N/A"
+
+
 def get_dan_from_diff(diff):
-    """Preserve the legacy algorithm and format only its displayed rating."""
-    default_label, default_numeric = _get_default_dan_from_diff(diff)
+    """Apply the chosen engine's Dan calibration, then the saved Skin."""
+    if APP_CONFIG.get("difficulty_engine", "Legacy") == "XDC1":
+        default_label, default_numeric = _get_xdc1_default_dan_from_diff(diff)
+    else:
+        default_label, default_numeric = _get_default_dan_from_diff(diff)
     return nomenclature_manager.apply_nomenclature(
         default_label,
         default_numeric,
