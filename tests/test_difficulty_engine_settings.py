@@ -92,6 +92,48 @@ class DifficultyEngineSettingsTests(unittest.TestCase):
         self.assertIn("def _get_xdc1_default_dan_from_diff(diff):", source)
         self.assertIn("nomenclature_manager.apply_nomenclature(", source)
 
+    def test_chart_publication_rejects_outdated_bridge_snapshots(self):
+        from unittest.mock import Mock
+        method = next(node for node in self.tree.body
+                      if isinstance(node, ast.FunctionDef)
+                      and node.name == "_publish_calculation")
+        mod = ast.fix_missing_locations(
+            ast.Module(body=[method], type_ignores=[])
+        )
+        graph = Mock()
+        update_dan_text = Mock()
+        show = Mock()
+        active_snapshot = ["song.ssc", "Hard", "12", "Selected",
+                           "StepsType_Dance_Single", 1.25, "XDC1"]
+        env = {
+            "connection_phase": "ready",
+            "_calculation_snapshot": lambda: tuple(active_snapshot),
+            "graph": graph,
+            "current_bar_color": "#ffffff",
+            "current_mode": 2, "MODE_FULL": 2,
+            "_show_graph_if_full": show,
+            "update_dan_text": update_dan_text,
+        }
+        exec(compile(mod, "<guard>", "exec"), env)
+        current = tuple(active_snapshot)
+        env["_publish_calculation"](current, [0, 100], [0, 2],
+                                    "Mid-Beta", 12.5)
+        graph.set_data.assert_called_once()
+        update_dan_text.assert_called_once_with("Mid-Beta", 12.5)
+        graph.reset_mock()
+        update_dan_text.reset_mock()
+        # Etterna changes rate while the previous subprocess is running.
+        active_snapshot[-2] = 1.5
+        env["_publish_calculation"](current, [0, 100], [0, 2],
+                                    "Mid-Beta", 12.5)
+        graph.set_data.assert_not_called()
+        update_dan_text.assert_not_called()
+        # Losing the bridge also invalidates queued UI changes.
+        env["connection_phase"] = "connecting"
+        env["_publish_calculation"](tuple(active_snapshot),
+                                    [0, 100], [0, 2], "Mid-Beta", 12.5)
+        update_dan_text.assert_not_called()
+
     def test_both_languages_have_correct_engines(self):
         for lang in ("en", "es"):
             for key in (
