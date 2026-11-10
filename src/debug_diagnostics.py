@@ -37,7 +37,7 @@ def configure(config_dir):
         _log_path = folder / "debug.log"
         with _io_lock:
             _log_path.write_text(
-                "DanielEtterna debug session — " + time.strftime("%Y-%m-%d %H:%M:%S")
+                "Ethan debug session — " + time.strftime("%Y-%m-%d %H:%M:%S")
                 + "\nTimes: local; ratings: different Legacy/XDC1 scales\n",
                 encoding="utf-8",
             )
@@ -179,7 +179,7 @@ def report_calculation(*, engine, path, difficulty, rate, note_counts,
         if subprocess_ms is not None else ""
     )
     emit(
-        "[DanielEtterna Debug]\n"
+        "[Ethan Debug]\n"
         f"  Engine: {engine} | Status: {status}\n"
         "[Chart]\n"
         f"  File: {Path(path).name} | Difficulty: {difficulty}"
