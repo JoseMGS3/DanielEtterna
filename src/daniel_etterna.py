@@ -23,6 +23,7 @@ import dan_image_renderer
 import xdc1_adapter
 import etterna_xdc1_pipeline
 import debug_diagnostics
+import phase_c_display
 
 from graph_fast import FastGraph
 
@@ -889,7 +890,7 @@ def draw_msd(msd_result, color):
     )
 
     text = (
-        f"{skillset_str}  {_last_sr:.2f} Dan"
+        f"XDC1 · {skillset_str}  {_last_sr:.2f} Dan"
         if APP_CONFIG.get("difficulty_engine") == "XDC1"
         and isinstance(_last_sr, (int, float))
         else f"{skillset_str}  {overall:.2f}MSD"
@@ -1175,6 +1176,36 @@ def update_dan_text(dan_label, dan_numeric):
         for item in msd_items:
             canvas.delete(item)
         msd_items.clear()
+
+    # Phase C: make the source of the new XDC1 strain curve explicit.
+    # This is a small graph legend, not a second graph or a new rating.
+    # Keep it out of Statistics/Compact and hide it for invalid charts.
+    if (
+        current_mode == MODE_FULL
+        and current_strain_data is not None
+        and not is_loading_text(dan_label)
+        and dan_label not in ("Invalid Beatmap", "? ? ? ? ?")
+    ):
+        caption = phase_c_display.graph_caption(
+            APP_CONFIG.get("difficulty_engine", "Legacy"),
+            current_rate,
+            current_language,
+        )
+        caption_font = _fit_font_to_width(
+            caption,
+            ("Segoe UI Semibold", _font_size(13)),
+            max(1, _canvas_text_width() - 28),
+            min_size=8,
+        )
+        text_items.append(canvas.create_text(
+            _canvas_text_width() - 12,
+            14,
+            text=caption,
+            font=caption_font,
+            fill="#A3A3A3",
+            anchor="ne",
+            tags="engine_graph_caption",
+        ))
 
     # In Compact and Statistics, use the *actual* painted text bounds
     # to center everything on the window's horizontal midline.
