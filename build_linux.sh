@@ -55,11 +55,11 @@ fi
   --noconfirm \
   --clean \
   --onefile \
-  --name Daniel-linux \
+  --name Ethan-linux \
   --collect-all numpy \
   --collect-all PIL \
   --hidden-import websocket \
   "${ADD_DATA_ARGS[@]}" \
   src/daniel.py
 
-echo "Build complete: dist/Daniel-linux"
+echo "Build complete: dist/Ethan-linux"
