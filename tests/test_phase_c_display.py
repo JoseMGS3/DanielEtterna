@@ -72,7 +72,7 @@ class PhaseCDisplayTests(unittest.TestCase):
         code = ast.get_source_segment(self.source, updater)
         self.assertNotIn("phase_c_display.graph_caption(", code)
         self.assertNotIn('tags="engine_graph_caption"', self.source)
-        self.assertIn('f"{skillset_str}  {_last_sr:.2f} Dan · "', self.source)
+        self.assertIn('f"{skillset_str} · "', self.source)
         self.assertNotIn('f"XDC1 · {skillset_str}', self.source)
         self.assertIn("graph.set_data(times, strain)", self.source)
 
