@@ -14,6 +14,7 @@ DEFAULT_CONFIG = {
     "layout": "full",
     "nomenclature": "Default",
     "difficulty_engine": "Legacy",
+    "xdc1_column_layout": "standard",
     "include_long_notes": True,
     "main_window_geometry": "",
     "window_sizes": {
@@ -112,6 +113,11 @@ def _merge_defaults(data):
     engine = data.get("difficulty_engine")
     if engine in ("Legacy", "XDC1"):
         result["difficulty_engine"] = engine
+
+    # Physical key layouts only affect XDC1; old installs keep the original grouping.
+    column_layout = data.get("xdc1_column_layout")
+    if column_layout in ("standard", "wasd"):
+        result["xdc1_column_layout"] = column_layout
 
     # Existing installations keep LNs enabled until the user toggles them.
     include_long_notes = data.get("include_long_notes")
