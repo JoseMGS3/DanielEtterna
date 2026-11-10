@@ -182,6 +182,42 @@ class EtternaPipelineTests(unittest.TestCase):
             [(0, 0, 1000), (1, 500, -1)],
         )
 
+    def test_native_engine_accepts_real_selected_ssc_with_hold_and_rate(self):
+        import xdc1_adapter
+
+        measures = [
+            "2000\n0100\n0010\n0001",  # a hold starts at beat zero
+            "0000\n0100\n3000\n0001",  # tail at beat six
+        ]
+        measures += ["1000\n0100\n0010\n0001"] * 10
+        data = self.write(
+            "live.ssc",
+            "#BPMS:0=180;\n#STOPS:8=0.1;\n"
+            "#NOTEDATA:;\n#STEPSTYPE:dance-single;\n"
+            "#DIFFICULTY:Challenge;\n#METER:18;\n"
+            "#DESCRIPTION:Etterna fixture;\n"
+            "#NOTES:\n" + ",\n".join(measures) + ";\n",
+        )
+        selected = pipeline.select_stepmania_chart(
+            data, "Difficulty_Challenge", "18", "Etterna fixture",
+            "StepsType_Dance_Single",
+        )
+        self.assertIs(selected, data["charts"][0])
+        result = pipeline.analyze_etterna_chart(
+            data, selected, rate=1.3,
+        )
+        normalized = chart_loader.normalize_chart_notes(data, selected)
+        self.assertTrue(any(tail != -1 for _, _, tail in normalized))
+        rated = chart_loader.rate_normalized_notes(normalized, rate=1.3)
+        baseline = xdc1_adapter.analyze_notes(rated)
+        self.assertAlmostEqual(result["rating"], baseline["rating"])
+        self.assertEqual(result["rating_rice"], baseline["rating_rice"])
+        self.assertEqual(set(result["skillsets_raw"]),
+                         {"overall", *pipeline.XDC1_SKILLSETS})
+        self.assertGreater(len(result["times"]), 2)
+        self.assertEqual(len(result["times"]), len(result["strain"]))
+        self.assertTrue(all(math.isfinite(v) for v in result["strain"]))
+
     def test_selected_chart_must_be_supplied_and_warps_are_rejected(self):
         data = self.write(
             "warped.sm",
