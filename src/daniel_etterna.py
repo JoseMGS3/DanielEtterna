@@ -3904,7 +3904,9 @@ def etterna_menu_loop():
                 * 1000.0
             )
 
-        except ValueError:
+        except (ValueError, TypeError):
+            music_ms = 0.0
+        if not np.isfinite(music_ms):
             music_ms = 0.0
 
         try:
@@ -3918,22 +3920,14 @@ def etterna_menu_loop():
                 * 1000.0
             )
 
-        except ValueError:
+        except (ValueError, TypeError):
+            sample_start_ms = 0.0
+        if not np.isfinite(sample_start_ms):
             sample_start_ms = 0.0
 
-        try:
-            rate = float(
-                state.get(
-                    "rate",
-                    "1"
-                )
-            )
-
-        except ValueError:
-            rate = 1.0
-
-        if rate <= 0:
-            rate = 1.0
+        rate = etterna_xdc1_pipeline.normalize_bridge_rate(
+            state.get("rate", "1"),
+        )
 
         with lock:
 
@@ -4019,22 +4013,14 @@ def etterna_gameplay_loop():
                 * 1000.0
             )
 
-        except ValueError:
+        except (ValueError, TypeError):
+            music_ms = 0.0
+        if not np.isfinite(music_ms):
             music_ms = 0.0
 
-        try:
-            rate = float(
-                state.get(
-                    "rate",
-                    "1"
-                )
-            )
-
-        except ValueError:
-            rate = 1.0
-
-        if rate <= 0:
-            rate = 1.0
+        rate = etterna_xdc1_pipeline.normalize_bridge_rate(
+            state.get("rate", "1"),
+        )
 
         playing = (
             state.get(
@@ -4587,18 +4573,9 @@ def etterna_bridge_loop():
             continue
 
 
-        try:
-
-            rate = float(
-                state.get(
-                    "rate",
-                    "1"
-                )
-            )
-
-        except ValueError:
-
-            rate = 1.0
+        rate = etterna_xdc1_pipeline.normalize_bridge_rate(
+            state.get("rate", "1"),
+        )
 
 
         native_msd = get_native_msd_from_state(
