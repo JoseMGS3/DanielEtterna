@@ -21,6 +21,15 @@ XDC1_RELEVANCE_FRACTION = 0.20
 
 
 
+def normalize_bridge_rate(raw):
+    """Return a safe rate for both engines when a Lua bridge is incomplete."""
+    try:
+        rate = float(raw)
+    except (TypeError, ValueError, OverflowError):
+        return 1.0
+    return rate if math.isfinite(rate) and rate > 0 else 1.0
+
+
 def is_4k_stepstype(value):
     """Accept the 4K StepMania dance-single type emitted by Etterna.
 
