@@ -65,6 +65,8 @@ class DifficultyEngineSettingsTests(unittest.TestCase):
         self.assertIn("engine_body.pack_forget()", source)
         self.assertIn("engine_body.pack(fill=", source)
         self.assertIn("engine_header = tk.Button(", source)
+        self.assertIn('for option_index, engine_key in enumerate(("Legacy", "XDC1")):', source)
+        self.assertNotIn("engine_description = tk.Label(", source)
         self.assertIn("general_canvas = tk.Canvas(", source)
         self.assertIn("general_scrollbar = tk.Scrollbar(", source)
         self.assertIn('command=_toggle_engine_section', source)
