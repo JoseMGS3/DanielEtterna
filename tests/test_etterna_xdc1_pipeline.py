@@ -242,7 +242,7 @@ class EtternaPipelineTests(unittest.TestCase):
     def test_native_wasd_matches_manual_swap_for_real_engine(self):
         import xdc1_adapter
 
-        measures = ["1200\n0010\n0030\n0100"] + [
+        measures = ["1200\n0010\n0300\n0100"] + [
             "1010\n0100\n1000\n0001"
         ] * 10
         data = self.write(
