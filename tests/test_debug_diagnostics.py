@@ -103,6 +103,7 @@ class DebugDiagnosticsTests(unittest.TestCase):
                     rate=1.25,
                     note_counts={"taps": 90, "holds": 8, "rolls": 2, "total": 100},
                     rating=14.3, rice=13.0, calc_ms=42.7, total_ms=51.2,
+                    subprocess_ms=31.4,
                     graph_points=350,
                     skillsets=["stream", "release"],
                     bridge=debug.bridge_health(
@@ -113,7 +114,8 @@ class DebugDiagnosticsTests(unittest.TestCase):
                 )
         text = (self.folder / "debug.log").read_text(encoding="utf-8")
         for expected in ("Engine: XDC1", "Rolls: 2", "Graph points: 350",
-                         "Engine time: 42.7 ms", "Clock: Rate aligned",
+                         "Engine time: 42.7 ms", "XDC1 subprocess: 31.4 ms",
+                         "Clock: Rate aligned",
                          "Top skillsets: stream, release"):
             with self.subTest(expected=expected):
                 self.assertIn(expected, text)
