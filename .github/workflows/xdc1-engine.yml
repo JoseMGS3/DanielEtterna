@@ -25,7 +25,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: build_xdc1.bat
+      - name: Install Python numerical dependency
+        run: python -m pip install numpy
       - name: Run native C++ engine through Python
         run: python -m unittest discover -s tests -p "test_xdc1_adapter.py" -v
+      - name: Verify Etterna bridge-to-XDC1 pipeline
+        run: python -m unittest discover -s tests -p "test_etterna_xdc1_pipeline.py" -v
       - name: Verify normalization remains compatible
         run: python -m unittest discover -s tests -p "test_chart_normalization.py" -v
