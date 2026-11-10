@@ -5021,6 +5021,10 @@ def calculation_loop():
                         graph_points=len(t_arr),
                         bridge=bridge_status,
                         rice=xdc1_result["rating_rice"] if xdc1_result is not None else None,
+                        subprocess_ms=(
+                            xdc1_result["details"].get("subprocess_ms")
+                            if xdc1_result is not None else None
+                        ),
                         skillsets=(
                             [name for name, _ in xdc1_result["top_skillsets"]]
                             if xdc1_result is not None else None
