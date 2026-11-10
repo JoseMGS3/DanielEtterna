@@ -14,7 +14,7 @@ class EthanBrandingTests(unittest.TestCase):
         source = (ROOT / "src" / "daniel_etterna.py").read_text(
             encoding="utf-8",
         )
-        self.assertIn('root.title(f"Ethan {APP_VERSION}")', source)
+        self.assertIn('root.title("Ethan")', source)
         self.assertNotIn('root.title(f"DanielEtterna', source)
         self.assertEqual(i18n.t("settings_window_title", "en"), "Ethan - Settings")
         self.assertEqual(i18n.t("settings_window_title", "es"), "Ethan - Opciones")
