@@ -4833,7 +4833,8 @@ def calculation_loop():
                 if data["keycount"] != 4:
 
                     raise ValueError(
-                        "Daniel only supports 4K"
+                        "Daniel only supports 4K "
+                        f"(.osu CircleSize detected: {data['keycount']})"
                     )
 
 
