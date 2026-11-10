@@ -14,6 +14,7 @@ DEFAULT_CONFIG = {
     "layout": "full",
     "nomenclature": "Default",
     "difficulty_engine": "Legacy",
+    "include_long_notes": True,
     "main_window_geometry": "",
     "window_sizes": {
         "compact": {"width": 550, "height": 72},
@@ -29,6 +30,7 @@ DEFAULT_CONFIG = {
         "toggle_topmost": "F1",
         "cycle_mode": "Tab",
         "open_settings": "Q",
+        "toggle_lns": "L",
     },
 }
 
@@ -110,6 +112,11 @@ def _merge_defaults(data):
     engine = data.get("difficulty_engine")
     if engine in ("Legacy", "XDC1"):
         result["difficulty_engine"] = engine
+
+    # Existing installations keep LNs enabled until the user toggles them.
+    include_long_notes = data.get("include_long_notes")
+    if isinstance(include_long_notes, bool):
+        result["include_long_notes"] = include_long_notes
 
     # Each layout keeps its own user-defined dimensions.
     saved_sizes = data.get("window_sizes")
