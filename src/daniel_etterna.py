@@ -22,6 +22,7 @@ import nomenclature_manager
 import dan_image_renderer
 import xdc1_adapter
 import etterna_xdc1_pipeline
+import debug_diagnostics
 
 from graph_fast import FastGraph
 
@@ -45,6 +46,7 @@ TOSU_WS = "ws://localhost:24050/ws"
 # Se carga desde:
 #   %LOCALAPPDATA%\DanielEtterna\config.json
 APP_CONFIG = config_manager.load_config()
+debug_diagnostics.configure(config_manager.get_config_dir())
 current_language = i18n.normalize_language(
     APP_CONFIG.get("language", i18n.DEFAULT_LANGUAGE)
 )
@@ -207,6 +209,7 @@ _frozen_interp_ms = 0.0
 loading = False
 loading_step = 0
 _last_loading_dot = 0.0
+_debug_last_heartbeat = 0.0
 
 current_strain_data = None
 current_msd_data = None
@@ -3533,6 +3536,7 @@ def _tick():
 
     global loading_step
     global _last_loading_dot
+    global _debug_last_heartbeat
 
     # Las acciones del hook global se encolan desde el hilo de Windows
     # y se ejecutan aquí, de forma segura, en el hilo principal de Tk.
@@ -3540,6 +3544,13 @@ def _tick():
 
     now = time.monotonic()
 
+    if debug_diagnostics.enabled and now - _debug_last_heartbeat >= 8.0:
+        _debug_last_heartbeat = now
+        with lock:
+            debug_chart_rate = current_rate
+        debug_diagnostics.report_bridge(
+            _bridge_diagnostics(debug_chart_rate, now),
+        )
 
     # ========================================================
     # ANIMACION DE CARGA
@@ -4563,6 +4574,35 @@ def _show_graph_if_full():
 
 # --- Calculation loop ---
 
+def _bridge_diagnostics(chart_rate, now=None):
+    """Collect bridge age/rate from the same clock source as the graph."""
+    if now is None:
+        now = time.monotonic()
+    with lock:
+        health = {
+            "menu_time": menu_music_ms,
+            "menu_rate": menu_rate,
+            "menu_received": menu_receive_time,
+            "gameplay_time": gameplay_music_ms,
+            "gameplay_rate": gameplay_rate,
+            "gameplay_received": gameplay_receive_time,
+            "gameplay_active": gameplay_active,
+        }
+        values = current_strain_data
+        first = (
+            float(values[0][0]) if values is not None
+            and len(values[0]) else None
+        )
+        last = (
+            float(values[0][-1]) if values is not None
+            and len(values[0]) else None
+        )
+    return debug_diagnostics.bridge_health(
+        connection=connection_phase, chart_rate=chart_rate, now=now,
+        graph_start=first, graph_end=last, **health,
+    )
+
+
 def _calculation_snapshot():
     """Snapshot the selected chart, 4K mode, rate and requested engine."""
     with lock:
@@ -4639,6 +4679,7 @@ def calculation_loop():
 
         try:
 
+            diagnostic_started = time.perf_counter()
             loading = True
             loading_step = 0
 
@@ -4825,6 +4866,8 @@ def calculation_loop():
                 )
 
 
+            engine_started = time.perf_counter()
+
             # Normalize only the selected chart when XDC1 is active.
             # The Legacy calculator keeps its original note format.
             if difficulty_engine == "XDC1":
@@ -4842,6 +4885,10 @@ def calculation_loop():
                     notes=rated_notes, keycount=4, mod="NM", od=od,
                 )
                 xdc1_result = None
+
+            engine_elapsed_ms = (
+                time.perf_counter() - engine_started
+            ) * 1000.0
 
             # The song, rate or engine may have changed during computation.
             if connection_phase != "ready" or state != _calculation_snapshot():
@@ -4956,6 +5003,39 @@ def calculation_loop():
             print()
 
 
+            if debug_diagnostics.enabled:
+                try:
+                    source_counts = debug_diagnostics.count_chart_notes(
+                        data, selected if extension in (".sm", ".ssc") else None,
+                    )
+                    bridge_status = _bridge_diagnostics(rate)
+                    debug_diagnostics.report_calculation(
+                        engine=difficulty_engine,
+                        path=mp,
+                        difficulty=difficulty,
+                        rate=rate,
+                        note_counts=source_counts,
+                        rating=SR,
+                        calc_ms=engine_elapsed_ms,
+                        total_ms=(time.perf_counter() - diagnostic_started) * 1000.0,
+                        graph_points=len(t_arr),
+                        bridge=bridge_status,
+                        rice=xdc1_result["rating_rice"] if xdc1_result is not None else None,
+                        skillsets=(
+                            [name for name, _ in xdc1_result["top_skillsets"]]
+                            if xdc1_result is not None else None
+                        ),
+                    )
+                    debug_diagnostics.remember_engine_rating(
+                        state[:-1], difficulty_engine, SR, dan_label,
+                    )
+                except Exception as diag_exc:
+                    # Debugging is observational and must never fail a chart.
+                    debug_diagnostics.emit(
+                        "[Debug warning] Diagnostics unavailable: "
+                        + str(diag_exc)
+                    )
+
             # =================================================
             # ACTUALIZAR OVERLAY
             # =================================================
@@ -4980,6 +5060,17 @@ def calculation_loop():
             if connection_phase != "ready" or state != _calculation_snapshot():
                 continue
             last_state = state
+
+            if debug_diagnostics.enabled:
+                debug_diagnostics.report_error(
+                    e,
+                    engine=difficulty_engine,
+                    path=mp,
+                    total_ms=(
+                        (time.perf_counter() - diagnostic_started) * 1000.0
+                        if "diagnostic_started" in locals() else None
+                    ),
+                )
 
             print(
                 "Calculation error:",
