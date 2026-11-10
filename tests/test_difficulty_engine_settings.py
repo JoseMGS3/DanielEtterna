@@ -77,9 +77,17 @@ class DifficultyEngineSettingsTests(unittest.TestCase):
         source = self.source
         self.assertIn('APP_CONFIG.get("difficulty_engine", "Legacy")', source)
         self.assertIn('if difficulty_engine == "XDC1":', source)
-        self.assertIn("chart_loader.normalize_chart_notes(", source)
-        self.assertIn("chart_loader.rate_normalized_notes(", source)
-        self.assertIn("xdc1_adapter.analyze_notes(", source)
+        self.assertIn("etterna_xdc1_pipeline.analyze_etterna_chart(", source)
+        self.assertIn("etterna_xdc1_pipeline.chart_position_ms(", source)
+        self.assertIn("def _calculation_snapshot():", source)
+        self.assertIn("def _publish_calculation(state,", source)
+        self.assertIn("def _publish_calculation_error(state):", source)
+        pipeline_source = (
+            ROOT / "src" / "etterna_xdc1_pipeline.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn("chart_loader.normalize_chart_notes(", pipeline_source)
+        self.assertIn("chart_loader.rate_normalized_notes(", pipeline_source)
+        self.assertIn("xdc1_adapter.analyze_notes(", pipeline_source)
         self.assertIn("algorithm.calculate_notes(", source)
         self.assertIn("def _get_xdc1_default_dan_from_diff(diff):", source)
         self.assertIn("nomenclature_manager.apply_nomenclature(", source)
