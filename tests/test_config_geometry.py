@@ -13,7 +13,8 @@ class MainWindowConfigTests(unittest.TestCase):
     def test_upgrade_from_v11_adds_default_per_layout_sizes(self):
         old = {"config_version": 6, "layout": "statistics"}
         merged = config_manager._merge_defaults(old)
-        self.assertEqual(merged["config_version"], 8)
+        self.assertEqual(merged["config_version"], 9)
+        self.assertEqual(merged["difficulty_engine"], "Legacy")
         self.assertEqual(merged["layout"], "statistics")
         self.assertEqual(merged["window_sizes"], {
             "compact": {"width": 550, "height": 72},
