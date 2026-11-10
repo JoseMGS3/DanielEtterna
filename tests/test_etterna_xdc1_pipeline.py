@@ -182,6 +182,86 @@ class EtternaPipelineTests(unittest.TestCase):
             [(0, 0, 1000), (1, 500, -1)],
         )
 
+    def test_wasd_swaps_only_columns_two_and_three(self):
+        notes = [
+            (0, 0, -1), (1, 250, 900), (2, 250, -1),
+            (3, 600, 1100),
+        ]
+        original = list(notes)
+        self.assertEqual(pipeline.remap_xdc1_columns(notes), original)
+        self.assertEqual(
+            pipeline.remap_xdc1_columns(notes, "wasd"),
+            [(0, 0, -1), (1, 250, -1), (2, 250, 900),
+             (3, 600, 1100)],
+        )
+        self.assertEqual(notes, original)
+        self.assertEqual(
+            pipeline.remap_xdc1_columns(
+                pipeline.remap_xdc1_columns(notes, "wasd"), "wasd",
+            ),
+            original,
+        )
+        with self.assertRaisesRegex(ValueError, "Unknown XDC1 column layout"):
+            pipeline.remap_xdc1_columns(notes, "invalid")
+
+    def test_wasd_profile_is_applied_after_rate_and_ln_conversion(self):
+        data = self.write(
+            "wasd.sm",
+            "#BPMS:0=120;\n"
+            "#NOTES:dance-single::Hard:10:0,0,0,0,0:\n"
+            "0200\n0001\n0300\n0010;\n",
+        )
+        cases = [
+            ("standard", True, [(1, 0, 1000), (3, 500, -1),
+                                (2, 1500, -1)]),
+            ("wasd", True, [(2, 0, 1000), (3, 500, -1),
+                            (1, 1500, -1)]),
+            ("wasd", False, [(2, 0, -1), (3, 500, -1),
+                             (1, 1500, -1)]),
+        ]
+        # The engine sees only a remapping; all chart timing, LN duration and
+        # 4K note heads must otherwise remain unchanged.
+        for layout, ln, expected in cases:
+            with self.subTest(layout=layout, include_long_notes=ln):
+                with patch.object(pipeline.xdc1_adapter, "analyze_notes") as analyze:
+                    analyze.return_value = {
+                        "grid": [0.0, 500.0, 1000.0, 1500.0, 2000.0],
+                        "strain_rested": [0.0, 1.0, 1.0, 1.0, 0.0],
+                        "rating": 12.0, "rating_rice": 11.0,
+                        "rating_raw": 80.0,
+                        "skillsets_raw": dict.fromkeys(
+                            pipeline.XDC1_SKILLSETS, 70.0,
+                        ),
+                    }
+                    pipeline.analyze_etterna_chart(
+                        data, data["charts"][0], rate=1.0,
+                        include_long_notes=ln, column_layout=layout,
+                    )
+                    self.assertEqual(analyze.call_args.args[0], expected)
+
+    def test_native_wasd_matches_manual_swap_for_real_engine(self):
+        import xdc1_adapter
+
+        measures = ["1200\n0010\n0030\n0100"] + [
+            "1010\n0100\n1000\n0001"
+        ] * 10
+        data = self.write(
+            "wasd_native.sm",
+            "#BPMS:0=150;\n"
+            "#NOTES:dance-single::Challenge:18:0,0,0,0,0:\n"
+            + ",\n".join(measures) + ";\n",
+        )
+        normalized = chart_loader.normalize_chart_notes(data, data["charts"][0])
+        rated = chart_loader.rate_normalized_notes(normalized, rate=1.2)
+        remapped = pipeline.remap_xdc1_columns(rated, "wasd")
+        baseline = xdc1_adapter.analyze_notes(remapped)
+        result = pipeline.analyze_etterna_chart(
+            data, data["charts"][0], rate=1.2, column_layout="wasd",
+        )
+        self.assertAlmostEqual(result["rating"], baseline["rating"])
+        self.assertAlmostEqual(result["rating_rice"], baseline["rating_rice"])
+        self.assertEqual(result["skillsets_raw"]["overall"], baseline["rating_raw"])
+
     def test_native_engine_accepts_real_selected_ssc_with_hold_and_rate(self):
         import xdc1_adapter
 
