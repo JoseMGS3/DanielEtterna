@@ -2891,6 +2891,9 @@ def open_settings(event=None):
     engine_var = tk.StringVar(
         value=APP_CONFIG.get("difficulty_engine", "Legacy"),
     )
+    xdc1_layout_var = tk.StringVar(
+        value=APP_CONFIG.get("xdc1_column_layout", "standard"),
+    )
     engine_panel = tk.Frame(
         general_content, bg="#141414",
         highlightbackground="#353535", highlightthickness=1, bd=0,
@@ -2943,13 +2946,46 @@ def open_settings(event=None):
             row=option_index, column=0, sticky="ew", pady=(6, 0),
         )
 
+    xdc1_layout_label = tk.Label(
+        engine_body, text=tr("xdc1_column_layout"),
+        bg="#141414", fg=fg, font=small_font, anchor="w",
+    )
+    xdc1_layout_label.grid(
+        row=2, column=0, sticky="ew", padx=(24, 0), pady=(10, 3),
+    )
+    xdc1_layout_radios = []
+    for option_index, layout_name in enumerate(("standard", "wasd")):
+        option = tk.Radiobutton(
+            engine_body, text=tr("xdc1_layout_" + layout_name),
+            value=layout_name, variable=xdc1_layout_var,
+            bg="#141414", fg=fg, selectcolor="#252525",
+            activebackground="#141414", activeforeground=fg,
+            font=small_font, anchor="w", bd=0,
+            highlightthickness=0,
+        )
+        option.grid(
+            row=3 + option_index, column=0, sticky="ew",
+            padx=(24, 0), pady=(2, 0),
+        )
+        xdc1_layout_radios.append(option)
+
+    def _update_layout_visibility(*_):
+        visible = engine_var.get() == "XDC1"
+        for widget in (xdc1_layout_label, *xdc1_layout_radios):
+            if visible:
+                widget.grid()
+            else:
+                widget.grid_remove()
+
+    engine_var.trace_add("write", _update_layout_visibility)
+    _update_layout_visibility()
 
     engine_hint = tk.Label(
         engine_body, text=tr("engine_settings_hint"),
         bg="#141414", fg="#999999", font=small_font,
         justify="left", anchor="w", wraplength=510,
     )
-    engine_hint.grid(row=2, column=0, sticky="ew", pady=(9, 0))
+    engine_hint.grid(row=5, column=0, sticky="ew", pady=(9, 0))
     engine_body.grid_columnconfigure(0, weight=1)
 
     # --------------------------------------------------------
@@ -3194,6 +3230,7 @@ def open_settings(event=None):
             "layout": MODE_NAMES[current_mode],
             "nomenclature": nomenclature_var.get(),
             "difficulty_engine": engine_var.get(),
+            "xdc1_column_layout": xdc1_layout_var.get(),
             "include_long_notes": APP_CONFIG.get("include_long_notes", True),
             "main_window_geometry": APP_CONFIG.get("main_window_geometry", ""),
             "window_sizes": dict(APP_CONFIG.get("window_sizes", {})),
@@ -3223,8 +3260,15 @@ def open_settings(event=None):
             APP_CONFIG.get("difficulty_engine", "Legacy")
             != new_config["difficulty_engine"]
         )
+        column_layout_changed = (
+            APP_CONFIG.get("xdc1_column_layout", "standard")
+            != new_config["xdc1_column_layout"]
+        )
+        calculation_changed = engine_changed or (
+            column_layout_changed and new_config["difficulty_engine"] == "XDC1"
+        )
         APP_CONFIG = new_config
-        if engine_changed:
+        if calculation_changed:
             last_state = None
             _last_sr = None
             with lock:
@@ -3267,7 +3311,7 @@ def open_settings(event=None):
             # nomenclature changes; no chart reparse or SR recalculation.
             if _last_sr is not None:
                 _last_dan_label, _last_dan_numeric = get_dan_from_diff(_last_sr)
-            if engine_changed:
+            if calculation_changed:
                 _last_dan_label, _last_dan_numeric = ".", ""
             update_dan_text(
                 _last_dan_label,
@@ -4666,6 +4710,7 @@ def _calculation_snapshot():
             current_map, current_difficulty, current_meter,
             current_description, current_stepstype, current_rate,
             APP_CONFIG.get("difficulty_engine", "Legacy"),
+            APP_CONFIG.get("xdc1_column_layout", "standard"),
             APP_CONFIG.get("include_long_notes", True),
             _ln_toggle_revision,
         )
@@ -4716,7 +4761,8 @@ def calculation_loop():
 
         (
             mp, difficulty, meter, description, stepstype, rate,
-            difficulty_engine, include_long_notes, _ln_revision,
+            difficulty_engine, xdc1_column_layout, include_long_notes,
+            _ln_revision,
         ) = state
 
 
@@ -4933,6 +4979,7 @@ def calculation_loop():
                 xdc1_result = etterna_xdc1_pipeline.analyze_etterna_chart(
                     data, selected if extension in (".sm", ".ssc") else None,
                     rate=rate, include_long_notes=include_long_notes,
+                    column_layout=xdc1_column_layout,
                 )
                 SR = xdc1_result["rating"]
                 times = xdc1_result["times"]
@@ -5090,7 +5137,7 @@ def calculation_loop():
                         ),
                     )
                     debug_diagnostics.remember_engine_rating(
-                        state[:-3], difficulty_engine, SR, dan_label,
+                        state[:-4], difficulty_engine, SR, dan_label,
                     )
                 except Exception as diag_exc:
                     # Debugging is observational and must never fail a chart.
