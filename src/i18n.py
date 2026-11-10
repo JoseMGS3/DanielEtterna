@@ -8,7 +8,7 @@ DEFAULT_LANGUAGE = "en"
 
 STRINGS = {
     "en": {
-        "settings_window_title": "DanielEtterna - Settings",
+        "settings_window_title": "Ethan - Settings",
         "settings_heading": "Settings",
         "general_tab": "General",
         "skins_tab": "Skins",
@@ -80,7 +80,7 @@ STRINGS = {
         "duplicate_keybind": "Two actions cannot use the same keybind: {a} and {b}.",
     },
     "es": {
-        "settings_window_title": "DanielEtterna - Opciones",
+        "settings_window_title": "Ethan - Opciones",
         "settings_heading": "Opciones",
         "general_tab": "General",
         "skins_tab": "Skins",
