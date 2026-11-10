@@ -1,7 +1,13 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-echo Building DanielEtterna with Reform Dans and optional XDC1 mode...
+set "APP_BINARY_NAME=DanielEtterna"
+set "APP_WINDOW_MODE=--windowed"
+if /I "%DANIEL_DEBUG_CONSOLE%"=="1" (
+    set "APP_BINARY_NAME=DanielEtterna-Debug"
+    set "APP_WINDOW_MODE=--console"
+)
+echo Building %APP_BINARY_NAME% with Reform Dans and XDC1...
 
 echo Building XDC1 C++ engine...
 call "%~dp0build_xdc1.bat"
@@ -31,7 +37,7 @@ if errorlevel 1 (
 )
 
 echo Packaging the app, SVGs, PNGs and WebP images...
-py -m PyInstaller --clean --noconfirm --onefile --windowed --name DanielEtterna ^
+py -m PyInstaller --clean --noconfirm --onefile %APP_WINDOW_MODE% --name %APP_BINARY_NAME% ^
   --icon "src\icon.ico" ^
   --add-data "src\icon.ico;." ^
   --add-data "src\xdc1.exe;." ^
@@ -43,5 +49,5 @@ if errorlevel 1 (
     exit /b 1
 )
 echo.
-echo Build complete: dist\DanielEtterna.exe
+echo Build complete: dist\%APP_BINARY_NAME%.exe
 pause
