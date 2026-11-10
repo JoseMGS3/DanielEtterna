@@ -69,6 +69,45 @@ class EtternaPipelineTests(unittest.TestCase):
             [("release", 15.0)],
         )
 
+    def test_ssc_ambiguous_chart_requires_exact_bridge_description(self):
+        data = self.write(
+            "duplicates.ssc",
+            "#BPMS:0=120;\n"
+            "#NOTEDATA:;\n#STEPSTYPE:dance-single;\n"
+            "#DIFFICULTY:Challenge;\n#METER:17;\n"
+            "#DESCRIPTION:Original;\n"
+            "#NOTES:1000\n0000\n0000\n0000;\n"
+            "#NOTEDATA:;\n#STEPSTYPE:dance-single;\n"
+            "#DIFFICULTY:Challenge;\n#METER:17;\n"
+            "#DESCRIPTION:Extended;\n#BPMS:0=240;\n"
+            "#NOTES:0100\n0000\n0000\n0000;\n",
+        )
+        first, second = data["charts"]
+        self.assertIs(
+            pipeline.select_stepmania_chart(
+                data, "Difficulty_Challenge", "17", "Extended",
+                "StepsType_Dance_Single",
+            ), second,
+        )
+        self.assertIs(
+            pipeline.select_stepmania_chart(
+                data, "Difficulty_Challenge", "17", "Original",
+                "StepsType_Dance_Single",
+            ), first,
+        )
+        self.assertIsNone(
+            pipeline.select_stepmania_chart(
+                data, "Difficulty_Challenge", "17", "",
+                "StepsType_Dance_Single",
+            )
+        )
+        self.assertIsNone(
+            pipeline.select_stepmania_chart(
+                data, "Difficulty_Challenge", "17", "Extended",
+                "StepsType_Dance_Double",
+            )
+        )
+
     def test_pipeline_uses_selected_ssc_timing_and_long_note_rate(self):
         data = self.write(
             "selected.ssc",
