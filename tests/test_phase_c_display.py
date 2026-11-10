@@ -63,7 +63,7 @@ class PhaseCDisplayTests(unittest.TestCase):
                     phase_c_display.graph_caption("XDC1", bad).endswith("1x")
                 )
 
-    def test_graph_has_no_engine_caption_but_keeps_engine_specific_skillsets(self):
+    def test_graph_has_no_engine_caption_and_skillsets_have_no_engine_prefix(self):
         updater = next(
             node for node in self.tree.body
             if isinstance(node, ast.FunctionDef)
@@ -72,7 +72,8 @@ class PhaseCDisplayTests(unittest.TestCase):
         code = ast.get_source_segment(self.source, updater)
         self.assertNotIn("phase_c_display.graph_caption(", code)
         self.assertNotIn('tags="engine_graph_caption"', self.source)
-        self.assertIn('f"XDC1 · {skillset_str}', self.source)
+        self.assertIn('f"{skillset_str}  {_last_sr:.2f} Dan · "', self.source)
+        self.assertNotIn('f"XDC1 · {skillset_str}', self.source)
         self.assertIn("graph.set_data(times, strain)", self.source)
 
     def test_xdc1_dan_means_map_exactly_to_centered_tiers(self):
