@@ -45,6 +45,55 @@ def is_4k_stepstype(value):
     return value.replace("_", "-") == "dance-single"
 
 
+def select_stepmania_chart(data, difficulty, meter, description="",
+                           stepstype=""):
+    """Match Etterna's selected StepMania chart without guessing.
+
+    The bridge supplies a StepType, difficulty, meter and description.
+    Multiple charts often share difficulty/meter in .ssc files; require
+    an unambiguous description match rather than calculating the wrong
+    chart. A single matching chart can retain the original behavior
+    even if the bridge's description format differs.
+    """
+    if not is_4k_stepstype(stepstype):
+        return None
+
+    target_diff = str(difficulty or "").strip().lower()
+    if target_diff.startswith("difficulty_"):
+        target_diff = target_diff[len("difficulty_"):]
+    target_description = str(description or "").strip().lower()
+
+    try:
+        target_meter = int(float(meter))
+    except (ValueError, TypeError, OverflowError):
+        target_meter = None
+
+    matches = []
+    for chart in data.get("charts") or []:
+        if not is_4k_stepstype(chart.get("stepstype")):
+            continue
+        chart_diff = str(chart.get("difficulty", "")).strip().lower()
+        if chart_diff != target_diff:
+            continue
+        try:
+            chart_meter = int(float(chart.get("meter", "")))
+        except (ValueError, TypeError, OverflowError):
+            chart_meter = None
+        if target_meter is not None and chart_meter != target_meter:
+            continue
+        matches.append(chart)
+
+    if len(matches) > 1 and target_description:
+        exact = [
+            chart for chart in matches
+            if str(chart.get("description", "")).strip().lower()
+            == target_description
+        ]
+        if len(exact) == 1:
+            return exact[0]
+    return matches[0] if len(matches) == 1 else None
+
+
 def chart_position_ms(music_ms, rate, elapsed_seconds=0.0):
     """Map Etterna's original song clock onto a rate-adjusted graph.
 
