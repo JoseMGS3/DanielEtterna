@@ -63,20 +63,17 @@ class PhaseCDisplayTests(unittest.TestCase):
                     phase_c_display.graph_caption("XDC1", bad).endswith("1x")
                 )
 
-    def test_overlay_only_in_full_with_valid_chart(self):
+    def test_graph_has_no_engine_caption_but_keeps_engine_specific_skillsets(self):
         updater = next(
             node for node in self.tree.body
             if isinstance(node, ast.FunctionDef)
             and node.name == "update_dan_text"
         )
         code = ast.get_source_segment(self.source, updater)
-        self.assertIn("phase_c_display.graph_caption(", code)
-        self.assertIn("current_mode == MODE_FULL", code)
-        self.assertIn("current_strain_data is not None", code)
-        self.assertIn('tags="engine_graph_caption"', code)
-        self.assertIn("not is_loading_text(dan_label)", code)
-        self.assertIn('"Invalid Beatmap"', code)
+        self.assertNotIn("phase_c_display.graph_caption(", code)
+        self.assertNotIn('tags="engine_graph_caption"', self.source)
         self.assertIn('f"XDC1 · {skillset_str}', self.source)
+        self.assertIn("graph.set_data(times, strain)", self.source)
 
     def test_xdc1_dan_means_map_exactly_to_centered_tiers(self):
         for i, (name, mean) in enumerate(self.means.items()):
