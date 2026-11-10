@@ -20,6 +20,22 @@ XDC1_SKILLSETS = (
 XDC1_RELEVANCE_FRACTION = 0.20
 
 
+
+def is_4k_stepstype(value):
+    """Accept the 4K StepMania dance-single type emitted by Etterna.
+
+    Older Lua bridges omit stepstype; an empty value remains compatible.
+    All explicit non-4K StepTypes are rejected to avoid calculating
+    another chart with a coincidentally matching difficulty and meter.
+    """
+    if not value:
+        return True
+    value = str(value).strip().lower()
+    if value.startswith("stepstype_"):
+        value = value[len("stepstype_"):]
+    return value.replace("_", "-") == "dance-single"
+
+
 def chart_position_ms(music_ms, rate, elapsed_seconds=0.0):
     """Map Etterna's original song clock onto a rate-adjusted graph.
 
