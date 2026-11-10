@@ -195,6 +195,9 @@ gameplay_prev_music_ms = None
 gameplay_is_moving = False
 
 last_state = None
+# Unique generation prevents old XDC1 results from reappearing after two LN toggles.
+_ln_toggle_revision = 0
+_local_ln_keycode = None
 current_song_time_ms = 0
 
 _ws_receive_time = 0.0
@@ -890,7 +893,13 @@ def draw_msd(msd_result, color):
     )
 
     text = (
-        f"XDC1 · {skillset_str}  {_last_sr:.2f} Dan"
+        (
+            f"XDC1 · {skillset_str}  {_last_sr:.2f} Dan · "
+            + i18n.t(
+                "ln_on" if APP_CONFIG.get("include_long_notes", True) else "ln_off",
+                current_language,
+            )
+        )
         if APP_CONFIG.get("difficulty_engine") == "XDC1"
         and isinstance(_last_sr, (int, float))
         else f"{skillset_str}  {overall:.2f}MSD"
@@ -1499,6 +1508,37 @@ def toggle_always_on_top(event=None):
     return "break"
 
 
+def toggle_long_notes(event=None):
+    """Toggle whether XDC1 scores hold/roll duration; refresh active chart."""
+    global _ln_toggle_revision, last_state, _last_sr
+    global _last_dan_label, _last_dan_numeric
+    global current_msd_data, current_strain_data
+
+    # The original Legacy engine is intentionally unaffected.
+    if APP_CONFIG.get("difficulty_engine", "Legacy") != "XDC1":
+        return "break"
+
+    with lock:
+        enabled = not APP_CONFIG.get("include_long_notes", True)
+        APP_CONFIG["include_long_notes"] = enabled
+        _ln_toggle_revision += 1
+        last_state = None
+        _last_sr = None
+        _last_dan_label, _last_dan_numeric = ".", ""
+        current_msd_data = None
+        current_strain_data = None
+
+    graph.hide()
+    update_dan_text(".", "")
+    try:
+        config_manager.save_config(APP_CONFIG)
+    except OSError as exc:
+        print("[LN] Could not persist mode:", exc)
+
+    print("[XDC1] Long notes:", "ON" if enabled else "OFF")
+    return "break"
+
+
 # ============================================================
 # SETTINGS / KEYBINDS
 # ============================================================
@@ -1562,6 +1602,7 @@ def _handle_hotkey_action(action):
         "toggle_topmost": toggle_always_on_top,
         "cycle_mode": cycle_mode,
         "open_settings": open_settings,
+        "toggle_lns": toggle_long_notes,
     }
 
     handler = handlers.get(action)
@@ -1578,6 +1619,13 @@ def _poll_global_hotkeys():
         _handle_hotkey_action(action)
 
 
+def _dispatch_keyrelease(event):
+    """Clear the local LN latch when its physical key is released."""
+    global _local_ln_keycode
+    if _local_ln_keycode == event.keycode:
+        _local_ln_keycode = None
+
+
 def _dispatch_keypress(event):
     """
     Procesa keybinds locales cuando DanielEtterna tiene el foco.
@@ -1585,6 +1633,7 @@ def _dispatch_keypress(event):
     Si el hook global está activo, evitamos procesar también el evento
     local para que una misma tecla no ejecute la acción dos veces.
     """
+    global _local_ln_keycode
     if _settings_is_open():
         return None
 
@@ -1612,10 +1661,15 @@ def _dispatch_keypress(event):
         "toggle_topmost": toggle_always_on_top,
         "cycle_mode": cycle_mode,
         "open_settings": open_settings,
+        "toggle_lns": toggle_long_notes,
     }
 
     for action, sequence in sequences.items():
         if sequence == event_sequence:
+            if action == "toggle_lns":
+                if _local_ln_keycode == event.keycode:
+                    return "break"
+                _local_ln_keycode = event.keycode
             return handlers[action](event)
 
     return None
@@ -1632,7 +1686,9 @@ def apply_keybinds():
     global _bound_key_sequences
     global _local_key_dispatch_installed
     global _global_hotkeys_active
+    global _local_ln_keycode
 
+    _local_ln_keycode = None
     sequences = _validated_tk_keybinds(
         current_keybinds,
         current_language,
@@ -1644,6 +1700,11 @@ def apply_keybinds():
         root.bind_all(
             "<KeyPress>",
             _dispatch_keypress,
+            add="+",
+        )
+        root.bind_all(
+            "<KeyRelease>",
+            _dispatch_keyrelease,
             add="+",
         )
 
@@ -2747,6 +2808,7 @@ def open_settings(event=None):
             "toggle_topmost",
             "cycle_mode",
             "open_settings",
+            "toggle_lns",
         )
     }
 
@@ -2762,6 +2824,10 @@ def open_settings(event=None):
         (
             tr("open_settings"),
             "open_settings",
+        ),
+        (
+            tr("toggle_lns"),
+            "toggle_lns",
         ),
     ]
 
@@ -2861,7 +2927,7 @@ def open_settings(event=None):
         highlightbackground="#353535", highlightthickness=1, bd=0,
     )
     engine_panel.grid(
-        row=14, column=0, columnspan=3, sticky="ew",
+        row=15, column=0, columnspan=3, sticky="ew",
         padx=10, pady=(12, 5),
     )
 
@@ -3170,6 +3236,7 @@ def open_settings(event=None):
             "layout": MODE_NAMES[current_mode],
             "nomenclature": nomenclature_var.get(),
             "difficulty_engine": engine_var.get(),
+            "include_long_notes": APP_CONFIG.get("include_long_notes", True),
             "main_window_geometry": APP_CONFIG.get("main_window_geometry", ""),
             "window_sizes": dict(APP_CONFIG.get("window_sizes", {})),
             "global_hotkeys": proposed_global_hotkeys,
@@ -4635,12 +4702,14 @@ def _bridge_diagnostics(chart_rate, now=None):
 
 
 def _calculation_snapshot():
-    """Snapshot the selected chart, 4K mode, rate and requested engine."""
+    """Snapshot selected chart, rate, engine and LN mode/generation."""
     with lock:
         return (
             current_map, current_difficulty, current_meter,
             current_description, current_stepstype, current_rate,
             APP_CONFIG.get("difficulty_engine", "Legacy"),
+            APP_CONFIG.get("include_long_notes", True),
+            _ln_toggle_revision,
         )
 
 
@@ -4689,7 +4758,7 @@ def calculation_loop():
 
         (
             mp, difficulty, meter, description, stepstype, rate,
-            difficulty_engine,
+            difficulty_engine, include_long_notes, _ln_revision,
         ) = state
 
 
@@ -4905,7 +4974,7 @@ def calculation_loop():
             if difficulty_engine == "XDC1":
                 xdc1_result = etterna_xdc1_pipeline.analyze_etterna_chart(
                     data, selected if extension in (".sm", ".ssc") else None,
-                    rate=rate, include_long_notes=True,
+                    rate=rate, include_long_notes=include_long_notes,
                 )
                 SR = xdc1_result["rating"]
                 times = xdc1_result["times"]
@@ -5063,7 +5132,7 @@ def calculation_loop():
                         ),
                     )
                     debug_diagnostics.remember_engine_rating(
-                        state[:-1], difficulty_engine, SR, dan_label,
+                        state[:-3], difficulty_engine, SR, dan_label,
                     )
                 except Exception as diag_exc:
                     # Debugging is observational and must never fail a chart.
