@@ -137,8 +137,27 @@ def relevant_xdc1_skillsets(overall_raw, skillsets_raw):
     ][:3]
 
 
+def remap_xdc1_columns(notes, column_layout="standard"):
+    """Choose XDC1's hand grouping without changing the physical chart.
+
+    The engine always treats internal columns 0-1 and 2-3 as two hands.
+    WASD only exchanges physical columns 2 and 3 (one-based indices),
+    keeping timing, LN tails and every scoring coefficient unchanged.
+    """
+    if column_layout not in ("standard", "wasd"):
+        raise ValueError("Unknown XDC1 column layout: " + str(column_layout))
+    if column_layout == "standard":
+        return list(notes)
+    swapped = (0, 2, 1, 3)
+    return sorted(
+        ((swapped[column], head, tail) for column, head, tail in notes),
+        key=lambda note: (note[1], note[0]),
+    )
+
+
 def analyze_etterna_chart(data, selected_chart=None, *, rate=1.0,
-                          include_long_notes=True, executable=None):
+                          include_long_notes=True, executable=None,
+                          column_layout="standard"):
     """Calculate a selected Etterna 4K chart with XDC1.
 
     Rate is taken from the bridge snapshot and applied to both LN ends
@@ -151,6 +170,7 @@ def analyze_etterna_chart(data, selected_chart=None, *, rate=1.0,
     rated_notes = chart_loader.rate_normalized_notes(
         notes, rate=rate, include_long_notes=include_long_notes,
     )
+    rated_notes = remap_xdc1_columns(rated_notes, column_layout)
     result = xdc1_adapter.analyze_notes(
         rated_notes, executable=executable,
     )
