@@ -14,7 +14,7 @@ SOURCE_PATH = Path(__file__).resolve().parents[1] / "src" / "daniel_etterna.py"
 
 def _load_dispatcher_functions(namespace):
     syntax = ast.parse(SOURCE_PATH.read_text(encoding="utf-8"))
-    names = {"_dispatch_keypress", "apply_keybinds"}
+    names = {"_dispatch_keypress", "_dispatch_keyrelease", "apply_keybinds"}
     functions = [
         node for node in syntax.body
         if isinstance(node, ast.FunctionDef) and node.name in names
@@ -50,14 +50,16 @@ class FocusOnlyTabTests(unittest.TestCase):
         class FakeConfig:
             @staticmethod
             def keybind_to_tk(spec, language):
-                return "<Tab>" if spec == "Tab" else "<x>"
+                return "<Tab>" if spec == "Tab" else "<l>" if spec == "L" else "<x>"
 
         self.ns = {
             "root": self.root,
             "_validated_tk_keybinds": lambda bindings, language: {
                 "cycle_mode": "<Tab>",
+                "toggle_lns": "<l>",
             },
-            "current_keybinds": {"cycle_mode": "Tab"},
+            "current_keybinds": {"cycle_mode": "Tab", "toggle_lns": "L"},
+            "_local_ln_keycode": None,
             "current_language": "en",
             "_local_key_dispatch_installed": False,
             "_global_hotkeys_active": False,
@@ -70,6 +72,7 @@ class FocusOnlyTabTests(unittest.TestCase):
             "toggle_always_on_top": lambda event: None,
             "cycle_mode": lambda event: self.actions.append("cycle_mode") or "break",
             "open_settings": lambda event: None,
+            "toggle_long_notes": lambda event: self.actions.append("toggle_lns") or "break",
         }
         _load_dispatcher_functions(self.ns)
         self.ns["apply_keybinds"]()
@@ -103,6 +106,22 @@ class FocusOnlyTabTests(unittest.TestCase):
         )
         self.assertIsNone(result)
         self.assertEqual(self.actions, [])
+
+    def test_ln_key_toggles_once_per_press_not_keyboard_autorepeat(self):
+        press = SimpleNamespace(keysym="L", keycode=76)
+        release = SimpleNamespace(keysym="L", keycode=76)
+        self.assertEqual(
+            self.root.all_bindings["<KeyPress>"](press), "break"
+        )
+        self.assertEqual(
+            self.root.all_bindings["<KeyPress>"](press), "break"
+        )
+        self.assertEqual(self.actions, ["toggle_lns"])
+        self.root.all_bindings["<KeyRelease>"](release)
+        self.assertEqual(
+            self.root.all_bindings["<KeyPress>"](press), "break"
+        )
+        self.assertEqual(self.actions, ["toggle_lns", "toggle_lns"])
 
 
 if __name__ == "__main__":
