@@ -1,10 +1,10 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-set "APP_BINARY_NAME=DanielEtterna"
+set "APP_BINARY_NAME=Ethan"
 set "APP_WINDOW_MODE=--windowed"
 if /I "%DANIEL_DEBUG_CONSOLE%"=="1" (
-    set "APP_BINARY_NAME=DanielEtterna-Debug"
+    set "APP_BINARY_NAME=Ethan-Debug"
     set "APP_WINDOW_MODE=--console"
 )
 echo Building %APP_BINARY_NAME% with Reform Dans and XDC1...
