@@ -28,6 +28,7 @@ class DifficultyEngineSettingsTests(unittest.TestCase):
             "window_sizes": config_manager.DEFAULT_CONFIG["window_sizes"],
         })
         self.assertEqual(defaults["difficulty_engine"], "Legacy")
+        self.assertEqual(defaults["xdc1_column_layout"], "standard")
         self.assertEqual(defaults["nomenclature"], "Images")
         self.assertEqual(defaults["config_version"], 9)
 
@@ -41,18 +42,35 @@ class DifficultyEngineSettingsTests(unittest.TestCase):
                 merged = config_manager._merge_defaults({"difficulty_engine": invalid})
                 self.assertEqual(merged["difficulty_engine"], "Legacy")
 
+    def test_wasd_column_layout_is_validated_and_persistent(self):
+        for layout in ("standard", "wasd"):
+            with self.subTest(layout=layout):
+                saved = config_manager._merge_defaults({
+                    "difficulty_engine": "XDC1",
+                    "xdc1_column_layout": layout,
+                })
+                self.assertEqual(saved["xdc1_column_layout"], layout)
+        for invalid in (None, "", "WASD", "dfjk", 5, ["wasd"]):
+            with self.subTest(invalid=invalid):
+                loaded = config_manager._merge_defaults({
+                    "xdc1_column_layout": invalid,
+                })
+                self.assertEqual(loaded["xdc1_column_layout"], "standard")
+
     def test_settings_roundtrip_preserves_custom_preferences(self):
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(config_manager, "get_config_dir",
                               return_value=Path(directory)):
                 chosen = config_manager._merge_defaults({
                     "difficulty_engine": "XDC1",
+                    "xdc1_column_layout": "wasd",
                     "nomenclature": "Images",
                     "language": "es",
                 })
                 config_manager.save_config(chosen)
                 reloaded = config_manager.load_config()
                 self.assertEqual(reloaded["difficulty_engine"], "XDC1")
+                self.assertEqual(reloaded["xdc1_column_layout"], "wasd")
                 self.assertEqual(reloaded["nomenclature"], "Images")
                 self.assertEqual(reloaded["language"], "es")
 
@@ -67,6 +85,12 @@ class DifficultyEngineSettingsTests(unittest.TestCase):
         self.assertIn("engine_header = tk.Button(", source)
         self.assertIn('for option_index, engine_key in enumerate(("Legacy", "XDC1")):', source)
         self.assertNotIn("engine_description = tk.Label(", source)
+        self.assertIn('xdc1_layout_var = tk.StringVar(', source)
+        self.assertIn('for option_index, layout_name in enumerate(("standard", "wasd")):', source)
+        self.assertIn('engine_var.trace_add("write", _update_layout_visibility)', source)
+        self.assertIn('"xdc1_column_layout": xdc1_layout_var.get()', source)
+        self.assertIn('column_layout_changed = (', source)
+        self.assertIn('if calculation_changed:', source)
         self.assertIn("general_canvas = tk.Canvas(", source)
         self.assertIn("general_scrollbar = tk.Scrollbar(", source)
         self.assertIn('command=_toggle_engine_section', source)
@@ -79,6 +103,8 @@ class DifficultyEngineSettingsTests(unittest.TestCase):
         source = self.source
         self.assertIn('APP_CONFIG.get("difficulty_engine", "Legacy")', source)
         self.assertIn('if difficulty_engine == "XDC1":', source)
+        self.assertIn('column_layout=xdc1_column_layout,', source)
+        self.assertIn('APP_CONFIG.get("xdc1_column_layout", "standard")', source)
         self.assertIn("etterna_xdc1_pipeline.analyze_etterna_chart(", source)
         self.assertIn("etterna_xdc1_pipeline.chart_position_ms(", source)
         self.assertIn("def _calculation_snapshot():", source)
@@ -142,6 +168,8 @@ class DifficultyEngineSettingsTests(unittest.TestCase):
                 "difficulty_engine", "engine_legacy", "engine_xdc1",
                 "engine_legacy_description", "engine_xdc1_description",
                 "engine_settings_hint", "engine_missing_message",
+                "xdc1_column_layout", "xdc1_layout_standard",
+                "xdc1_layout_wasd",
                 "engine_missing_title", "xdc1_error",
             ):
                 with self.subTest(lang=lang, key=key):
