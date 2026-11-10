@@ -4145,123 +4145,11 @@ def find_sm_file(song_directory):
     return files[0]
 
 
-def find_selected_sm_chart(
-    data,
-    difficulty,
-    meter,
-    description=""
-):
-
-    target_diff = (
-        normalize_difficulty(
-            difficulty
-        )
+def find_selected_sm_chart(data, difficulty, meter, description="", stepstype=""):
+    """Reuse the same unambiguous chart selection in both engines."""
+    return etterna_xdc1_pipeline.select_stepmania_chart(
+        data, difficulty, meter, description, stepstype,
     )
-
-
-    target_description = (
-        description
-        or ""
-    ).strip().lower()
-
-
-    try:
-
-        target_meter = int(
-            float(meter)
-        )
-
-    except Exception:
-
-        target_meter = None
-
-
-    matches = []
-
-
-    for chart in data["charts"]:
-
-        if (
-            chart["stepstype"]
-            .strip()
-            .lower()
-            != "dance-single"
-        ):
-            continue
-
-
-        chart_diff = (
-            chart["difficulty"]
-            .strip()
-            .lower()
-        )
-
-
-        try:
-
-            chart_meter = int(
-                float(
-                    chart["meter"]
-                )
-            )
-
-        except Exception:
-
-            chart_meter = None
-
-
-        if chart_diff != target_diff:
-            continue
-
-
-        if (
-            target_meter is not None
-            and chart_meter
-            != target_meter
-        ):
-            continue
-
-
-        matches.append(chart)
-
-
-    # Si Description existe,
-    # úsala para desambiguar.
-    if (
-        len(matches) > 1
-        and target_description
-    ):
-
-        description_matches = [
-
-            chart
-
-            for chart in matches
-
-            if (
-                chart.get(
-                    "description",
-                    ""
-                )
-                .strip()
-                .lower()
-                == target_description
-            )
-
-        ]
-
-
-        if len(description_matches) == 1:
-
-            return description_matches[0]
-
-
-    if len(matches) == 1:
-
-        return matches[0]
-
-
-    return None
 
 
 def apply_etterna_rate(
@@ -4791,7 +4679,8 @@ def calculation_loop():
                         data,
                         difficulty,
                         meter,
-                        description
+                        description,
+                        stepstype,
                     )
                 )
 
