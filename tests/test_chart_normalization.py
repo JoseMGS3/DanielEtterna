@@ -44,6 +44,76 @@ class NormalizedChartTests(unittest.TestCase):
             [(0, 1000, -1), (1, 1500, 2100)],
         )
 
+    def test_osu_decimal_four_keys_are_preserved_for_both_engines(self):
+        # The old parser interpreted CircleSize:4.000000 as 10K.
+        for circle_size in ("4", "4.0", "4.000000", " 4.0 // comment"):
+            with self.subTest(circle_size=circle_size):
+                data = self.write(
+                    "decimal_4k.osu",
+                    "osu file format v14\n"
+                    "[General]\nMode:3\n"
+                    "[Difficulty]\nCircleSize:" + circle_size + "\n"
+                    "[HitObjects]\n"
+                    "64,192,1000,1,0,0:0:0:0:\n"
+                    "192,192,1500,128,0,2100:0:0:0:\n",
+                )
+                self.assertEqual(data["keycount"], 4)
+                self.assertEqual(data["notes"], [(0, 1000), (1, 1500)])
+                self.assertEqual(
+                    loader.normalize_chart_notes(data),
+                    [(0, 1000, -1), (1, 1500, 2100)],
+                )
+
+    def test_osu_metadata_without_source_does_not_swallow_difficulty(self):
+        # Source is optional, and [Metadata] normally precedes
+        # [Difficulty] in real osu!mania files.
+        data = self.write(
+            "missing_source.osu",
+            "osu file format v14\n[General]\nMode:3\n"
+            "[Metadata]\nTitle:Example\nArtist:Artist\n"
+            "Creator:Mapper\nVersion:Hard\n"
+            "[Difficulty]\nHPDrainRate:5\nCircleSize:4.0\n"
+            "OverallDifficulty:8\n"
+            "[HitObjects]\n"
+            "64,192,1000,1,0,0:0:0:0:\n"
+            "192,192,1500,128,0,2200:0:0:0:\n",
+        )
+        self.assertEqual(data["keycount"], 4)
+        self.assertEqual(len(data["notes"]), 2)
+        self.assertEqual(
+            loader.normalize_chart_notes(data),
+            [(0, 1000, -1), (1, 1500, 2200)],
+        )
+
+    def test_osu_ten_keys_and_decimal_six_keys_remain_rejected(self):
+        for circlesize in ("6", "6.0", "10", "10.0", "4.5"):
+            with self.subTest(circlesize=circlesize):
+                data_content = (
+                    "osu file format v14\n"
+                    "[Difficulty]\nCircleSize:" + circlesize + "\n"
+                    "[HitObjects]\n"
+                    "64,192,1000,1,0,0:0:0:0:\n"
+                )
+                if circlesize == "4.5":
+                    with self.assertRaisesRegex(ValueError, "CircleSize"):
+                        self.write("noninteger.osu", data_content)
+                    continue
+                data = self.write("non4k.osu", data_content)
+                self.assertNotEqual(data["keycount"], 4)
+                with self.assertRaisesRegex(ValueError, "4K"):
+                    loader.normalize_chart_notes(data)
+
+    def test_osu_invalid_circlesize_is_reported(self):
+        for circlesize in ("notanumber", "nan", "inf", "-4", "0"):
+            with self.subTest(circlesize=circlesize):
+                with self.assertRaisesRegex(ValueError, "CircleSize"):
+                    self.write(
+                        "broken_circlesize.osu",
+                        "CircleSize:" + circlesize + "\n"
+                        "[HitObjects]\n"
+                        "64,192,1000,1,0,0:0:0:0:\n",
+                    )
+
     def test_osu_rejects_non_four_key_charts(self):
         data = self.write(
             "six.osu",
