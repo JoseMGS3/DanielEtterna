@@ -164,7 +164,8 @@ def _bridge_text(bridge):
 
 def report_calculation(*, engine, path, difficulty, rate, note_counts,
                        rating, calc_ms, total_ms, graph_points,
-                       bridge, rice=None, skillsets=None, status="Ready"):
+                       bridge, rice=None, skillsets=None, status="Ready",
+                       subprocess_ms=None):
     if not enabled:
         return
     unit = "Dan" if engine == "XDC1" else "Legacy SR (stars)"
@@ -173,6 +174,10 @@ def report_calculation(*, engine, path, difficulty, rate, note_counts,
         if engine == "XDC1" and rice is not None else ""
     )
     names = ", ".join(skillsets) if skillsets else "N/A"
+    subprocess_line = (
+        f" | XDC1 subprocess: {subprocess_ms:.1f} ms"
+        if subprocess_ms is not None else ""
+    )
     emit(
         "[DanielEtterna Debug]\n"
         f"  Engine: {engine} | Status: {status}\n"
@@ -187,7 +192,7 @@ def report_calculation(*, engine, path, difficulty, rate, note_counts,
         f"  Rating: {rating:.3f} {unit}{rice_line}\n"
         f"  Engine time: {calc_ms:.1f} ms"
         f" | Total parse + calculation: {total_ms:.1f} ms"
-        f" | Graph points: {graph_points}\n"
+        f" | Graph points: {graph_points}{subprocess_line}\n"
         f"  Top skillsets: {names}\n"
         "[Bridge]\n  " + _bridge_text(bridge)
     )
