@@ -31,6 +31,19 @@ class EtternaPipelineTests(unittest.TestCase):
         self.assertEqual(pipeline.chart_position_ms(-500, 1.5), -500 / 1.5)
         self.assertEqual(pipeline.chart_position_ms(1000, 1, -1), 1000)
 
+    def test_bridge_rate_and_stepstype_safety(self):
+        for raw in ("1.5", 0.75, 1):
+            self.assertEqual(pipeline.normalize_bridge_rate(raw), float(raw))
+        for raw in ("", None, "NaN", "inf", 0, -2, "broken"):
+            with self.subTest(raw=raw):
+                self.assertEqual(pipeline.normalize_bridge_rate(raw), 1.0)
+        for value in ("StepsType_Dance_Single", "dance-single",
+                      "dance_single", ""):
+            self.assertTrue(pipeline.is_4k_stepstype(value))
+        for value in ("StepsType_Dance_Double", "dance-double",
+                      "StepsType_Pump_Single", "dance-solo"):
+            self.assertFalse(pipeline.is_4k_stepstype(value))
+
     def test_invalid_bridge_clocks_are_rejected(self):
         cases = [(100, 0, 0), (100, float("nan"), 0),
                  (float("inf"), 1, 0), (10, 1, float("nan"))]
