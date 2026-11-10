@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
 
 import dan_scale
 
@@ -98,6 +99,7 @@ def analyze_notes(notes, *, executable=None, timeout=45):
     command = [str(binary), "--graph"]
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
 
+    subprocess_started = time.perf_counter()
     result = subprocess.run(
         command,
         input=payload,
@@ -107,6 +109,7 @@ def analyze_notes(notes, *, executable=None, timeout=45):
         check=False,
         creationflags=flags,
     )
+    subprocess_ms = (time.perf_counter() - subprocess_started) * 1000.0
     if result.returncode:
         raise RuntimeError(
             f"XDC1 failed (exit {result.returncode}): "
@@ -156,6 +159,7 @@ def analyze_notes(notes, *, executable=None, timeout=45):
         for p in graph_points
     ]
     return {
+        "subprocess_ms": subprocess_ms,
         "rating": dan_scale.to_dan(raw),
         "rating_rice": dan_scale.to_dan(raw_rice),
         "rating_points": rating_points,
