@@ -70,7 +70,9 @@ def select_stepmania_chart(data, difficulty, meter, description="",
 
     matches = []
     for chart in data.get("charts") or []:
-        if not is_4k_stepstype(chart.get("stepstype")):
+        if not chart.get("stepstype") or not is_4k_stepstype(
+            chart["stepstype"]
+        ):
             continue
         chart_diff = str(chart.get("difficulty", "")).strip().lower()
         if chart_diff != target_diff:
