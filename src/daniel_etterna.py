@@ -381,7 +381,7 @@ if os.name == "nt" and hasattr(ctypes, "windll"):
 
 root = tk.Tk()
 root.tk.call("tk", "scaling", 1.0)
-root.title(f"DanielEtterna {APP_VERSION}")
+root.title(f"Ethan {APP_VERSION}")
 _initial_width, _initial_height = _saved_mode_size(current_mode)
 _saved_geometry = APP_CONFIG.get("main_window_geometry", "")
 try:
