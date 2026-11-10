@@ -21,6 +21,7 @@ import global_hotkeys
 import nomenclature_manager
 import dan_image_renderer
 import xdc1_adapter
+import etterna_xdc1_pipeline
 
 from graph_fast import FastGraph
 
@@ -174,6 +175,7 @@ current_mod = "NM"
 current_difficulty = ""
 current_meter = ""
 current_description = ""
+current_stepstype = ""
 current_rate = 1.0
 
 gameplay_music_ms = 0.0
@@ -871,12 +873,9 @@ def draw_msd(msd_result, color):
         msd_result
     )
     if APP_CONFIG.get("difficulty_engine") == "XDC1":
-        top3 = sorted(
-            ((k, v) for k, v in msd_result.items()
-             if k != "overall" and v > 0),
-            key=lambda pair: pair[1],
-            reverse=True,
-        )[:3]
+        top3 = etterna_xdc1_pipeline.relevant_xdc1_skillsets(
+            overall, {k: v for k, v in msd_result.items() if k != "overall"},
+        )
 
     if not top3:
         return
@@ -3053,6 +3052,7 @@ def open_settings(event=None):
         global current_language
         global _last_dan_label, _last_dan_numeric
         global _settings_window, last_state, _last_sr
+        global current_msd_data, current_strain_data
 
         proposed_language = (
             i18n.language_code_from_name(
@@ -3168,6 +3168,10 @@ def open_settings(event=None):
         if engine_changed:
             last_state = None
             _last_sr = None
+            with lock:
+                current_msd_data = None
+                current_strain_data = None
+            graph.hide()
         current_language = (
             proposed_language
         )
@@ -3596,16 +3600,8 @@ def _tick():
 
         if gameplay_fresh:
 
-            position_ms = (
-                gp_music / gp_rate
-            )
-
-
-            # Interpolacion entre muestras
-
-            position_ms += (
-                (now - gp_recv)
-                * 1000.0
+            position_ms = etterna_xdc1_pipeline.chart_position_ms(
+                gp_music, gp_rate, now - gp_recv,
             )
 
 
@@ -3645,18 +3641,8 @@ def _tick():
                 # sample_start: usamos directamente el reloj
                 # actual de Etterna.
 
-                position_ms = (
-                    mn_music / mn_rate
-                )
-
-
-                # Entre escrituras del bridge avanzamos en
-                # tiempo real. Despues de dividir por rate,
-                # la linea temporal rateada avanza a 1x real.
-
-                position_ms += (
-                    (now - mn_recv)
-                    * 1000.0
+                position_ms = etterna_xdc1_pipeline.chart_position_ms(
+                    mn_music, mn_rate, now - mn_recv,
                 )
 
 
@@ -4353,6 +4339,7 @@ def etterna_bridge_loop():
     global current_difficulty
     global current_meter
     global current_description
+    global current_stepstype
     global current_rate
     global current_native_msd
 
@@ -4441,6 +4428,11 @@ def etterna_bridge_loop():
 
             state.get(
                 "description",
+                ""
+            ),
+
+            state.get(
+                "stepstype",
                 ""
             ),
 
@@ -4640,7 +4632,7 @@ def etterna_bridge_loop():
                     ""
                 )
             )
-
+            current_stepstype = state.get("stepstype", "")
             current_rate = rate
 
             current_native_msd = native_msd
@@ -4706,6 +4698,34 @@ def _show_graph_if_full():
 
 # --- Calculation loop ---
 
+def _calculation_snapshot():
+    """Snapshot the selected chart, 4K mode, rate and requested engine."""
+    with lock:
+        return (
+            current_map, current_difficulty, current_meter,
+            current_description, current_stepstype, current_rate,
+            APP_CONFIG.get("difficulty_engine", "Legacy"),
+        )
+
+
+def _publish_calculation(state, times, strain, label, numeric):
+    """Only draw data for the currently selected chart and engine."""
+    if connection_phase != "ready" or state != _calculation_snapshot():
+        return
+    graph.set_data(times, strain)
+    graph.set_color(current_bar_color)
+    if current_mode == MODE_FULL:
+        _show_graph_if_full()
+    update_dan_text(label, numeric)
+
+
+def _publish_calculation_error(state):
+    if connection_phase != "ready" or state != _calculation_snapshot():
+        return
+    _clear_invalid_ui()
+    update_dan_text("Invalid Beatmap", "")
+
+
 def calculation_loop():
 
     global last_state
@@ -4728,24 +4748,11 @@ def calculation_loop():
             continue
 
 
-        with lock:
-
-            state = (
-                current_map,
-                current_difficulty,
-                current_meter,
-                current_description,
-                current_rate,
-                APP_CONFIG.get("difficulty_engine", "Legacy"),
-            )
+        state = _calculation_snapshot()
 
 
         (
-            mp,
-            difficulty,
-            meter,
-            description,
-            rate,
+            mp, difficulty, meter, description, stepstype, rate,
             difficulty_engine,
         ) = state
 
@@ -4787,6 +4794,11 @@ def calculation_loop():
                 .lower()
             )
 
+
+            # A non-4K StepsType must not resolve to an unrelated 4K
+            # chart with the same difficulty and meter.
+            if not etterna_xdc1_pipeline.is_4k_stepstype(stepstype):
+                raise ValueError("Not a 4K dance-single chart: " + str(stepstype))
 
             # =================================================
             # .SM / .SSC
@@ -4947,40 +4959,28 @@ def calculation_loop():
                 )
 
 
-            # The selected engine runs on the same Etterna chart and rate.
-            # Legacy remains byte-for-byte the old calculation path.
+            # Normalize only the selected chart when XDC1 is active.
+            # The Legacy calculator keeps its original note format.
             if difficulty_engine == "XDC1":
-                normalized_notes = chart_loader.normalize_chart_notes(
+                xdc1_result = etterna_xdc1_pipeline.analyze_etterna_chart(
                     data, selected if extension in (".sm", ".ssc") else None,
+                    rate=rate, include_long_notes=True,
                 )
-                rated_normalized = chart_loader.rate_normalized_notes(
-                    normalized_notes, rate=rate, include_long_notes=True,
-                )
-                xdc1_result = xdc1_adapter.analyze_notes(rated_normalized)
                 SR = xdc1_result["rating"]
-                times = np.asarray(xdc1_result["grid"], dtype=float)
-                # Reuse the established graph smoothing and pause handling.
-                raw_strain = np.asarray(
-                    xdc1_result["strain_rested"], dtype=float,
-                )
-                graph_note_seq = [
-                    (col, head) for col, head, tail in rated_normalized
-                ]
-                enveloped_strain = algorithm._apply_proximity_envelope(
-                    times, raw_strain, graph_note_seq,
-                )
-                strain = algorithm.smooth_D_for_graph(
-                    times, enveloped_strain, graph_note_seq,
-                )
+                times = xdc1_result["times"]
+                strain = xdc1_result["strain"]
                 factors = {}
             else:
-                # Original Sunny / legacy engine, including its OD handling.
                 rated_notes = apply_etterna_rate(notes, rate)
                 SR, times, strain, factors = algorithm.calculate_notes(
                     notes=rated_notes, keycount=4, mod="NM", od=od,
                 )
                 xdc1_result = None
 
+            # The song, rate or engine may have changed during computation.
+            if connection_phase != "ready" or state != _calculation_snapshot():
+                loading = False
+                continue
 
             t_arr = np.asarray(
                 times,
@@ -5006,10 +5006,7 @@ def calculation_loop():
             with lock:
                 if difficulty_engine == "XDC1":
                     # XDC1 skillsets are a separate metric from Etterna MSD.
-                    msd_result = {
-                        "overall": xdc1_result["rating_raw"],
-                        **xdc1_result["skillsets_raw"],
-                    }
+                    msd_result = xdc1_result["skillsets_raw"].copy()
                 elif current_native_msd is not None:
                     msd_result = current_native_msd.copy()
                 else:
@@ -5057,10 +5054,8 @@ def calculation_loop():
             )
 
 
-            dan_label, dan_numeric = (
-                get_dan_from_diff(
-                    SR
-                )
+            dan_label, dan_numeric = get_dan_from_diff(
+                SR, engine=difficulty_engine,
             )
 
 
@@ -5103,44 +5098,21 @@ def calculation_loop():
             last_state = state
 
 
-            # En Compact / Statistics solo se conservan los datos:
-            # FastGraph pospone el renderizado hasta regresar a Full.
+            # The graph, skillsets and Dan are published on the Tk thread
+            # together, and only for the latest bridge snapshot.
             root.after(
                 0,
-                lambda _t=t_arr,
-                _d=d_arr:
-                graph.set_data(
-                    _t,
-                    _d
-                )
-            )
-
-            root.after(
-                0,
-                lambda:
-                graph.set_color(
-                    current_bar_color
-                )
-            )
-
-            if current_mode == MODE_FULL:
-                # Check the layout again when Tk runs the callback;
-                # the user may have switched to Compact meanwhile.
-                root.after(
-                    0,
-                    _show_graph_if_full
-                )
-
-
-            set_dan_text(
-                dan_label,
-                dan_numeric
+                lambda _s=state, _t=t_arr, _d=d_arr,
+                       _label=dan_label, _numeric=dan_numeric:
+                _publish_calculation(_s, _t, _d, _label, _numeric),
             )
 
 
         except Exception as e:
 
             loading = False
+            if connection_phase != "ready" or state != _calculation_snapshot():
+                continue
             last_state = state
 
             print(
@@ -5162,12 +5134,7 @@ def calculation_loop():
 
             root.after(
                 0,
-                _clear_invalid_ui
-            )
-
-            set_dan_text(
-                "Invalid Beatmap",
-                ""
+                lambda _s=state: _publish_calculation_error(_s),
             )
 
 
@@ -5402,9 +5369,11 @@ def _get_xdc1_default_dan_from_diff(diff):
     return "? ? ? ? ?", "N/A"
 
 
-def get_dan_from_diff(diff):
-    """Apply the chosen engine's Dan calibration, then the saved Skin."""
-    if APP_CONFIG.get("difficulty_engine", "Legacy") == "XDC1":
+def get_dan_from_diff(diff, engine=None):
+    """Calibrate the rating with the engine which produced it."""
+    if engine is None:
+        engine = APP_CONFIG.get("difficulty_engine", "Legacy")
+    if engine == "XDC1":
         default_label, default_numeric = _get_xdc1_default_dan_from_diff(diff)
     else:
         default_label, default_numeric = _get_default_dan_from_diff(diff)
