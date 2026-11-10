@@ -44,6 +44,8 @@ class XDC1AdapterTests(unittest.TestCase):
         )
         baseline = json.loads(direct.stdout)
         self.assertAlmostEqual(output["rating_points"], baseline["rating"], places=4)
+        self.assertGreaterEqual(output["subprocess_ms"], 0.0)
+        self.assertTrue(math.isfinite(output["subprocess_ms"]))
         self.assertAlmostEqual(
             output["rating_rice_points"], baseline["rating_rice"], places=4
         )
