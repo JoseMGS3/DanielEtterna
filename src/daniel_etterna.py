@@ -893,7 +893,7 @@ def draw_msd(msd_result, color):
 
     text = (
         (
-            f"{skillset_str}  {_last_sr:.2f} Dan · "
+            f"{skillset_str} · "
             + i18n.t(
                 "ln_on" if APP_CONFIG.get("include_long_notes", True) else "ln_off",
                 current_language,
