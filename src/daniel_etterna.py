@@ -23,7 +23,6 @@ import dan_image_renderer
 import xdc1_adapter
 import etterna_xdc1_pipeline
 import debug_diagnostics
-import phase_c_display
 
 from graph_fast import FastGraph
 
@@ -1185,36 +1184,6 @@ def update_dan_text(dan_label, dan_numeric):
         for item in msd_items:
             canvas.delete(item)
         msd_items.clear()
-
-    # Phase C: make the source of the new XDC1 strain curve explicit.
-    # This is a small graph legend, not a second graph or a new rating.
-    # Keep it out of Statistics/Compact and hide it for invalid charts.
-    if (
-        current_mode == MODE_FULL
-        and current_strain_data is not None
-        and not is_loading_text(dan_label)
-        and dan_label not in ("Invalid Beatmap", "? ? ? ? ?")
-    ):
-        caption = phase_c_display.graph_caption(
-            APP_CONFIG.get("difficulty_engine", "Legacy"),
-            current_rate,
-            current_language,
-        )
-        caption_font = _fit_font_to_width(
-            caption,
-            ("Segoe UI Semibold", _font_size(13)),
-            max(1, _canvas_text_width() - 28),
-            min_size=8,
-        )
-        text_items.append(canvas.create_text(
-            _canvas_text_width() - 12,
-            14,
-            text=caption,
-            font=caption_font,
-            fill="#A3A3A3",
-            anchor="ne",
-            tags="engine_graph_caption",
-        ))
 
     # In Compact and Statistics, use the *actual* painted text bounds
     # to center everything on the window's horizontal midline.
@@ -2961,10 +2930,7 @@ def open_settings(event=None):
     engine_var.trace_add("write", lambda *_: _update_engine_title())
     _update_engine_title()
 
-    for option_index, (engine_key, description_key) in enumerate((
-        ("Legacy", "engine_legacy_description"),
-        ("XDC1", "engine_xdc1_description"),
-    )):
+    for option_index, engine_key in enumerate(("Legacy", "XDC1")):
         engine_radio = tk.Radiobutton(
             engine_body, text=tr("engine_" + engine_key.lower()),
             value=engine_key, variable=engine_var,
@@ -2974,24 +2940,16 @@ def open_settings(event=None):
             highlightthickness=0,
         )
         engine_radio.grid(
-            row=option_index * 2, column=0, sticky="ew", pady=(6, 0),
+            row=option_index, column=0, sticky="ew", pady=(6, 0),
         )
-        engine_description = tk.Label(
-            engine_body, text=tr(description_key),
-            bg="#141414", fg=muted, font=small_font,
-            anchor="w", justify="left", wraplength=500,
-        )
-        engine_description.grid(
-            row=option_index * 2 + 1, column=0,
-            sticky="ew", padx=(24, 0),
-        )
+
 
     engine_hint = tk.Label(
         engine_body, text=tr("engine_settings_hint"),
         bg="#141414", fg="#999999", font=small_font,
         justify="left", anchor="w", wraplength=510,
     )
-    engine_hint.grid(row=4, column=0, sticky="ew", pady=(9, 0))
+    engine_hint.grid(row=2, column=0, sticky="ew", pady=(9, 0))
     engine_body.grid_columnconfigure(0, weight=1)
 
     # --------------------------------------------------------
