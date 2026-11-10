@@ -1,10 +1,10 @@
-# DanielEtterna v1.1.1
+# Ethan
 
-A real-time rice difficulty calculator for 4k Etterna. Supports .osu, .ssc and .sm files. (Note: .sm/.ssc charts using WARPS are not currently supported.)
+Ethan is the renamed DanielEtterna app, a real-time difficulty calculator for 4K Etterna with Legacy and XDC1 engines. Supports .osu, .ssc and .sm files. (Note: .sm/.ssc charts using WARPS are not currently supported.)
 
 **Ratings below Alpha Dan are enabled, but can be inaccurate.**
 
-**[Original Website](https://thebagelofman.github.io/Daniel/)** · **[Original Daniel](https://github.com/TheBagelOfMan/Daniel)** · **[Download DanielEtterna](https://github.com/JoseMGS3/DanielEtterna/releases)**
+**[Original Website](https://thebagelofman.github.io/Daniel/)** · **[Original Daniel](https://github.com/TheBagelOfMan/Daniel)** · **[Releases (DanielEtterna repository)](https://github.com/JoseMGS3/DanielEtterna/releases)**
 
 # Keybinds 
 
@@ -22,9 +22,19 @@ Use `build_linux.sh` to create a Linux binary:
 ./build_linux.sh
 ```
 
-This script installs dependencies using python venv and outputs `dist/Daniel-linux`. If `src/msd` is missing, set `MSD_BIN_PATH` at runtime to a Linux-compatible `msd` executable.
+This script installs dependencies using python venv and outputs `dist/Ethan-linux`. If `src/msd` is missing, set `MSD_BIN_PATH` at runtime to a Linux-compatible `msd` executable.
 
 On Linux/macOS, it will use Wine if only `src/msd.exe` is available.
+
+## Name and settings compatibility
+
+The application/window and new Windows executable are named **Ethan**.
+The GitHub repository, Python entry point (`src/daniel_etterna.py`) and
+Etterna bridge filenames retain their original names for compatibility.
+Existing settings and custom assets remain at
+`%LOCALAPPDATA%\\DanielEtterna\\` on Windows (or
+`~/.daniel_etterna/` on Linux); there is no reset or migration required.
+Existing `DanielEtterna.exe` builds remain separate from the new `Ethan.exe`.
 
 ## License
 
@@ -32,7 +42,7 @@ On Linux/macOS, it will use Wine if only `src/msd.exe` is available.
 
 ## Theme compatibility
 
-DanielEtterna is currently developed and tested with Rebirth theme.
+Ethan is currently developed and tested with Rebirth theme.
 Other themes may be compatible, but their `ScreenSelectMusic` and `ScreenGameplay` implementations can differ. The three Lua bridge actors must be loaded by the equivalent screens of the selected theme, and theme-specific rate/preview functions may require adaptation.
 
 
@@ -44,7 +54,7 @@ Other themes may be compatible, but their `ScreenSelectMusic` and `ScreenGamepla
 pip install -r requirements.txt
 ```
 
-2. On `main`/1.1.1, `build_windows.bat` converts the 50 numbered SVGs to PNG and builds `dist/DanielEtterna.exe`. On experimental `2.0-dev`, the script **also compiles and packages XDC1**, requiring Visual Studio Build Tools (C++).
+2. On `main`/1.1.1, `build_windows.bat` produces the historical `dist/DanielEtterna.exe`. On `2.0-dev`, it compiles and packages XDC1 (Visual Studio Build Tools C++ required) and produces **`dist/Ethan.exe`**. For a debug build, use `build_debug_windows.bat` to produce `dist/Ethan-Debug.exe`.
 
    If you prefer to build manually, run the following in the root.
    On `2.0-dev`, first run `build_xdc1.bat` to compile the new C++ engine:
@@ -52,7 +62,7 @@ pip install -r requirements.txt
 ```cmd
 build_xdc1.bat
 py scripts/prepare_reform_png.py
-pyinstaller --clean --noconfirm --onefile --windowed --name DanielEtterna --icon "src/icon.ico" --add-data "src/icon.ico;." --add-data "src/nomenclatures/images;nomenclatures/images" --add-data "src/xdc1.exe;." src/daniel_etterna.py
+pyinstaller --clean --noconfirm --onefile --windowed --name Ethan --icon "src/icon.ico" --add-data "src/icon.ico;." --add-data "src/nomenclatures/images;nomenclatures/images" --add-data "src/xdc1.exe;." src/daniel_etterna.py
 ```
 
    To keep the debug console, remove `--windowed`.
@@ -68,7 +78,7 @@ pyinstaller --clean --noconfirm --onefile --windowed --name DanielEtterna --icon
 
 ## 1. Lua Bridges
 
-DanielEtterna needs three Lua scripts (briges) to receive information from Etterna; these can be found on the `/bridges` folder:
+Ethan needs three Lua scripts (briges) to receive information from Etterna; these can be found on the `/bridges` folder:
 
 ```
 daniel_bridge.lua
@@ -167,7 +177,7 @@ After completing the steps above, restart Etterna.
 
 # EXPLANATION
 
-DanielEtterna needs three Lua scripts (briges) to receive information from Etterna; these can be found on the `/bridges` folder:
+Ethan needs three Lua scripts (briges) to receive information from Etterna; these can be found on the `/bridges` folder:
 
 ```
 daniel_bridge.lua
@@ -180,7 +190,7 @@ These files must be copied into the theme you are using in Etterna.
 
 ## 1. daniel_bridge.lua
 
-It is responsible for sendinginformation about the selected file to DanielEtterna:
+It is responsible for sending information about the selected file to Ethan:
 
 ```
 Song
