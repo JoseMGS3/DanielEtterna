@@ -15,6 +15,7 @@ DEFAULT_CONFIG = {
     "nomenclature": "Default",
     "difficulty_engine": "Legacy",
     "xdc1_column_layout": "standard",
+    "xdc1_time_origin": "absolute",
     "include_long_notes": True,
     "main_window_geometry": "",
     "window_sizes": {
@@ -118,6 +119,11 @@ def _merge_defaults(data):
     column_layout = data.get("xdc1_column_layout")
     if column_layout in ("standard", "wasd"):
         result["xdc1_column_layout"] = column_layout
+
+    # Default retains the exact timeline used by upstream Daniel.
+    time_origin = data.get("xdc1_time_origin")
+    if time_origin in ("absolute", "first_note"):
+        result["xdc1_time_origin"] = time_origin
 
     # Existing installations keep LNs enabled until the user toggles them.
     include_long_notes = data.get("include_long_notes")
