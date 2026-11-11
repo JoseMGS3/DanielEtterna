@@ -262,6 +262,72 @@ class EtternaPipelineTests(unittest.TestCase):
         self.assertAlmostEqual(result["rating_rice"], baseline["rating_rice"])
         self.assertEqual(result["skillsets_raw"]["overall"], baseline["rating_raw"])
 
+    def test_native_xdc1_equal_for_equivalent_osu_and_sm_timing(self):
+        # Independent integer timing oracle: at 160 BPM, each half beat
+        # occupies 187.5 ms after beat zero (offset -0.400 seconds).
+        import xdc1_adapter
+
+        measures = [
+            ['0000', '0000', '0000', '0000',
+             '0000', '0200', '0000', '0000'],
+            ['1300', '0100', '0010', '0000',
+             '0000', '0001', '0000', '0000'],
+        ]
+        measures.extend([
+            ['1000', '0010', '0100', '0001',
+             '1100', '0100', '0010', '0001']
+        ] * 14)
+        sm_rows = ',\n'.join('\n'.join(rows) for rows in measures)
+        sm = self.write(
+            'equivalent.sm',
+            '#BPMS:0=160;\n#OFFSET:-0.400;\n'
+            '#NOTES:dance-single::Challenge:18:0,0,0,0,0:\n'
+            + sm_rows + ';\n',
+        )
+
+        active = {}
+        expected = []
+        for measure_index, rows in enumerate(measures):
+            for row_index, row in enumerate(rows):
+                # Integer arithmetic avoids the float noise being fixed.
+                time_ms = 400 + ((measure_index * 8 + row_index) * 375) // 2
+                for column, symbol in enumerate(row):
+                    if symbol == '1':
+                        expected.append((column, time_ms, -1))
+                    elif symbol == '2':
+                        active[column] = time_ms
+                    elif symbol == '3':
+                        expected.append((column, active.pop(column), time_ms))
+        self.assertFalse(active)
+        expected.sort(key=lambda n: (n[1], n[0]))
+        osu_objects = []
+        for column, head, tail in expected:
+            osu_objects.append(
+                f'{64 + column * 128},192,{head},'
+                + ('128,0,' + str(tail) if tail >= 0 else '1,0,0')
+                + ':0:0:0:0:'
+            )
+        osu = self.write(
+            'equivalent.osu',
+            'osu file format v14\n[Difficulty]\nCircleSize:4\n'
+            '[HitObjects]\n' + '\n'.join(osu_objects) + '\n',
+        )
+        sm_notes = chart_loader.normalize_chart_notes(sm, sm['charts'][0])
+        osu_notes = chart_loader.normalize_chart_notes(osu)
+        self.assertEqual(sm_notes, expected)
+        self.assertEqual(osu_notes, expected)
+
+        sm_result = pipeline.analyze_etterna_chart(
+            sm, sm['charts'][0], rate=1.15,
+        )
+        osu_result = pipeline.analyze_etterna_chart(osu, rate=1.15)
+        self.assertAlmostEqual(sm_result['rating'], osu_result['rating'])
+        self.assertAlmostEqual(sm_result['rating_rice'], osu_result['rating_rice'])
+        rated = chart_loader.rate_normalized_notes(expected, rate=1.15)
+        self.assertAlmostEqual(
+            sm_result['rating'], xdc1_adapter.analyze_notes(rated)['rating'],
+        )
+
     def test_native_engine_accepts_real_selected_ssc_with_hold_and_rate(self):
         import xdc1_adapter
 
