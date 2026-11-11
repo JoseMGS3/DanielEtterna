@@ -155,6 +155,29 @@ class EtternaPipelineTests(unittest.TestCase):
         self.assertEqual(len(result["times"]), 5)
         self.assertTrue(all(math.isfinite(x) for x in result["strain"]))
 
+    def test_first_note_mode_is_forwarded_to_native_adapter(self):
+        data = self.write(
+            "time_origin.sm",
+            "#BPMS:0=160;\n#OFFSET:-0.400;\n"
+            "#NOTES:dance-single::Challenge:14:0,0,0,0,0:\n"
+            "1000\n0100\n0010\n0001;\n",
+        )
+        mock_result = {
+            "grid": [400.0, 425.0, 450.0, 475.0],
+            "strain_rested": [0.0, 1.0, 2.0, 0.0],
+            "rating": 12.0, "rating_rice": 12.0,
+            "rating_raw": 80.0,
+            "skillsets_raw": dict.fromkeys(pipeline.XDC1_SKILLSETS, 70.0),
+        }
+        with patch.object(pipeline.xdc1_adapter, "analyze_notes",
+                          return_value=mock_result) as analyzer:
+            result = pipeline.analyze_etterna_chart(
+                data, data["charts"][0], time_origin="first_note",
+            )
+        self.assertEqual(analyzer.call_args.kwargs["time_origin"], "first_note")
+        self.assertEqual(result["rating"], 12.0)
+        self.assertEqual(result["times"][0], 400.0)
+
     def test_pipeline_can_disable_ln_without_changing_source_chart(self):
         data = self.write(
             "selected.sm",
