@@ -29,6 +29,7 @@ class DifficultyEngineSettingsTests(unittest.TestCase):
         })
         self.assertEqual(defaults["difficulty_engine"], "Legacy")
         self.assertEqual(defaults["xdc1_column_layout"], "standard")
+        self.assertEqual(defaults["xdc1_time_origin"], "absolute")
         self.assertEqual(defaults["nomenclature"], "Images")
         self.assertEqual(defaults["config_version"], 9)
 
@@ -57,6 +58,20 @@ class DifficultyEngineSettingsTests(unittest.TestCase):
                 })
                 self.assertEqual(loaded["xdc1_column_layout"], "standard")
 
+    def test_xdc1_time_origin_is_validated_and_persistent(self):
+        for origin in ("absolute", "first_note"):
+            with self.subTest(origin=origin):
+                result = config_manager._merge_defaults({
+                    "difficulty_engine": "XDC1",
+                    "xdc1_time_origin": origin,
+                })
+                self.assertEqual(result["xdc1_time_origin"], origin)
+        for invalid in ("", "first", None, 123, ["first_note"]):
+            result = config_manager._merge_defaults({
+                "xdc1_time_origin": invalid,
+            })
+            self.assertEqual(result["xdc1_time_origin"], "absolute")
+
     def test_settings_roundtrip_preserves_custom_preferences(self):
         with tempfile.TemporaryDirectory() as directory:
             with patch.object(config_manager, "get_config_dir",
@@ -64,6 +79,7 @@ class DifficultyEngineSettingsTests(unittest.TestCase):
                 chosen = config_manager._merge_defaults({
                     "difficulty_engine": "XDC1",
                     "xdc1_column_layout": "wasd",
+                    "xdc1_time_origin": "first_note",
                     "nomenclature": "Images",
                     "language": "es",
                 })
@@ -71,6 +87,7 @@ class DifficultyEngineSettingsTests(unittest.TestCase):
                 reloaded = config_manager.load_config()
                 self.assertEqual(reloaded["difficulty_engine"], "XDC1")
                 self.assertEqual(reloaded["xdc1_column_layout"], "wasd")
+                self.assertEqual(reloaded["xdc1_time_origin"], "first_note")
                 self.assertEqual(reloaded["nomenclature"], "Images")
                 self.assertEqual(reloaded["language"], "es")
 
@@ -86,10 +103,14 @@ class DifficultyEngineSettingsTests(unittest.TestCase):
         self.assertIn('for option_index, engine_key in enumerate(("Legacy", "XDC1")):', source)
         self.assertNotIn("engine_description = tk.Label(", source)
         self.assertIn('xdc1_layout_var = tk.StringVar(', source)
+        self.assertIn('xdc1_time_origin_var = tk.StringVar(', source)
+        self.assertIn('for option_index, origin_name in enumerate(("absolute", "first_note")):', source)
         self.assertIn('for option_index, layout_name in enumerate(("standard", "wasd")):', source)
         self.assertIn('engine_var.trace_add("write", _update_layout_visibility)', source)
         self.assertIn('"xdc1_column_layout": xdc1_layout_var.get()', source)
+        self.assertIn('"xdc1_time_origin": xdc1_time_origin_var.get()', source)
         self.assertIn('column_layout_changed = (', source)
+        self.assertIn('origin_changed = (', source)
         self.assertIn('if calculation_changed:', source)
         self.assertIn("general_canvas = tk.Canvas(", source)
         self.assertIn("general_scrollbar = tk.Scrollbar(", source)
@@ -104,6 +125,8 @@ class DifficultyEngineSettingsTests(unittest.TestCase):
         self.assertIn('APP_CONFIG.get("difficulty_engine", "Legacy")', source)
         self.assertIn('if difficulty_engine == "XDC1":', source)
         self.assertIn('column_layout=xdc1_column_layout,', source)
+        self.assertIn('time_origin=xdc1_time_origin,', source)
+        self.assertIn('APP_CONFIG.get("xdc1_time_origin", "absolute")', source)
         self.assertIn('APP_CONFIG.get("xdc1_column_layout", "standard")', source)
         self.assertIn("etterna_xdc1_pipeline.analyze_etterna_chart(", source)
         self.assertIn("etterna_xdc1_pipeline.chart_position_ms(", source)
@@ -169,7 +192,8 @@ class DifficultyEngineSettingsTests(unittest.TestCase):
                 "engine_legacy_description", "engine_xdc1_description",
                 "engine_settings_hint", "engine_missing_message",
                 "xdc1_column_layout", "xdc1_layout_standard",
-                "xdc1_layout_wasd",
+                "xdc1_layout_wasd", "xdc1_time_origin",
+                "xdc1_origin_absolute", "xdc1_origin_first_note",
                 "engine_missing_title", "xdc1_error",
             ):
                 with self.subTest(lang=lang, key=key):
