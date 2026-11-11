@@ -157,7 +157,7 @@ def remap_xdc1_columns(notes, column_layout="standard"):
 
 def analyze_etterna_chart(data, selected_chart=None, *, rate=1.0,
                           include_long_notes=True, executable=None,
-                          column_layout="standard"):
+                          column_layout="standard", time_origin="absolute"):
     """Calculate a selected Etterna 4K chart with XDC1.
 
     Rate is taken from the bridge snapshot and applied to both LN ends
@@ -171,8 +171,12 @@ def analyze_etterna_chart(data, selected_chart=None, *, rate=1.0,
         notes, rate=rate, include_long_notes=include_long_notes,
     )
     rated_notes = remap_xdc1_columns(rated_notes, column_layout)
+    # Preserve existing adapter callers/mocks for the Daniel-compatible
+    # default. Only opt-in first-note mode needs an additional keyword.
+    origin_kw = ({"time_origin": time_origin}
+                 if time_origin != "absolute" else {})
     result = xdc1_adapter.analyze_notes(
-        rated_notes, executable=executable,
+        rated_notes, executable=executable, **origin_kw,
     )
     times = np.asarray(result["grid"], dtype=float)
     strain = np.asarray(result["strain_rested"], dtype=float)
