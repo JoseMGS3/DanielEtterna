@@ -136,6 +136,68 @@ class NormalizedChartTests(unittest.TestCase):
         self.assertEqual(old, [(0, 0.0), (1, 500.0)])
         self.assertEqual(ignored["M"], 1)
 
+    def test_sm_and_osu_match_fractional_millisecond_heads_and_ln_tails(self):
+        # Minimal independent reconstruction of the user's converted
+        # BPM-160 map: osu! stores integer milliseconds by truncation.
+        sm = self.sm(
+            "0000\\n0000\\n0000\\n0000\\n0000\\n0200\\n0000\\n0000,"
+            "\\n1300\\n0100\\n0010\\n0000\\n0000\\n0001\\n0000\\n0000",
+            timing="#BPMS:0=160;\\n#OFFSET:-0.400;\\n",
+        )
+        osu = self.write(
+            "equivalent.osu",
+            "osu file format v14\\n[Difficulty]\\nCircleSize:4\\n"
+            "[HitObjects]\\n"
+            "192,192,1337,128,0,1900:0:0:0:0:\\n"
+            "64,192,1900,1,0,0:0:0:0:\\n"
+            "192,192,2087,1,0,0:0:0:0:\\n"
+            "320,192,2275,1,0,0:0:0:0:\\n"
+            "448,192,2837,1,0,0:0:0:0:\\n",
+        )
+        sm_chart = sm["charts"][0]
+        expected = [
+            (1, 1337, 1900),
+            (0, 1900, -1),
+            (1, 2087, -1),
+            (2, 2275, -1),
+            (3, 2837, -1),
+        ]
+        self.assertEqual(loader.normalize_chart_notes(sm, sm_chart), expected)
+        self.assertEqual(loader.normalize_chart_notes(osu), expected)
+        # Legacy continues to consume fractional milliseconds, unchanged.
+        old, ignored = loader.convert_stepmania_chart(sm, sm_chart)
+        self.assertEqual(old[0], (1, 1337.5))
+        self.assertEqual(ignored, {})
+
+    def test_stepmania_floor_tolerance_keeps_exact_integral_milliseconds(self):
+        # BPM 160, offset -0.400, beat 42 is mathematically 16150 ms.
+        # Floating-point accumulation can produce 16149.999999999998.
+        prefix = ",".join(["0000"] * 10)
+        sm = self.sm(
+            prefix + ",0000\\n0000\\n1100\\n0000",
+            timing="#BPMS:0=160;\\n#OFFSET:-0.400;\\n",
+        )
+        self.assertEqual(
+            loader.normalize_chart_notes(sm, sm["charts"][0]),
+            [(0, 16150, -1), (1, 16150, -1)],
+        )
+
+    def test_ssc_matches_osu_fractional_milliseconds_with_chart_timing(self):
+        ssc = self.write(
+            "equivalent.ssc",
+            "#BPMS:0=120;\\n#OFFSET:0;\\n"
+            "#NOTEDATA:;\\n#STEPSTYPE:dance-single;\\n"
+            "#DIFFICULTY:Challenge;\\n#METER:14;\\n"
+            "#BPMS:0=160;\\n#OFFSET:-0.400;\\n"
+            "#NOTES:0000\\n0000\\n0000\\n0000\\n0000\\n0200\\n0000\\n0000,"
+            "1300\\n0100\\n0010\\n0000\\n0000\\n0001\\n0000\\n0000;\\n",
+        )
+        self.assertEqual(
+            loader.normalize_chart_notes(ssc, ssc["charts"][0]),
+            [(1, 1337, 1900), (0, 1900, -1), (1, 2087, -1),
+             (2, 2275, -1), (3, 2837, -1)],
+        )
+
     def test_sm_roll_end_and_skipped_mines_lifts_fakes(self):
         data = self.sm("4000\n000L\n000F\n3000")
         self.assertEqual(
