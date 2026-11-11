@@ -993,13 +993,23 @@ def _normalize_stepmania_chart(data, chart):
     events = _stepmania_hold_events(chart["note_data"])
 
     def beat_ms(beat):
-        return int(round(1000.0 * _beat_to_seconds(
+        # Match integer osu!mania hit-object timestamps for equivalent
+        # StepMania timing: truncate fractional milliseconds instead of
+        # rounding to the nearest millisecond. An extremely small epsilon
+        # corrects floating-point drift at integral timestamps, e.g.
+        # 16149.999999999998 ms -> 16150 ms (BPM 160, beat 42).
+        # Only the XDC1 SM/SSC normalization changes; Legacy keeps its
+        # original floating-point timing from convert_stepmania_chart().
+        import math
+
+        milliseconds = 1000.0 * _beat_to_seconds(
             beat=beat,
             bpms=timing["bpms"],
             stops=timing["stops"],
             delays=timing["delays"],
             offset=timing["offset"],
-        )))
+        )
+        return math.floor(milliseconds + 1e-7)
 
     notes = []
     for column, head_beat, tail_beat in events:
