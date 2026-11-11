@@ -84,6 +84,48 @@ class XDC1AdapterTests(unittest.TestCase):
         )
         self.assertAlmostEqual(output["rating_points"], direct["rating"])
 
+    def test_first_note_origin_ignores_constant_leadin_and_restores_graph(self):
+        # The same relative chart should produce identical ratings even
+        # if song offset / leading silence shifts every note and LN tail.
+        base = fixture_notes()
+        reference = adapter.analyze_notes(
+            base, executable=self.binary, time_origin="first_note",
+        )
+        first = min(head for _, head, _ in base)
+        for shift in (77, 183, -1300, 25000):
+            with self.subTest(shift=shift):
+                translated = [
+                    (col, head + shift, tail + shift if tail != -1 else -1)
+                    for col, head, tail in base
+                ]
+                result = adapter.analyze_notes(
+                    translated, executable=self.binary,
+                    time_origin="first_note",
+                )
+                self.assertEqual(result["rating_points"], reference["rating_points"])
+                self.assertEqual(result["rating"], reference["rating"])
+                self.assertEqual(result["skillsets_points"], reference["skillsets_points"])
+                self.assertEqual(result["graph_points"], reference["graph_points"])
+                self.assertEqual(
+                    result["grid"],
+                    [t + shift for t in reference["grid"]],
+                )
+                self.assertEqual(result["grid"][0], first + shift)
+
+    def test_first_note_stdin_starts_at_zero_but_preserves_ln_durations(self):
+        notes = [(1, 1500, 2020), (0, 1300, -1), (2, 1750, -1)]
+        payload, offset = adapter._prepare_input(
+            notes, time_origin="first_note",
+        )
+        self.assertEqual(offset, -1300)
+        self.assertEqual(payload.splitlines(), [
+            "0 0 -1", "1 200 720", "2 450 -1",
+        ])
+        with self.assertRaisesRegex(ValueError, "Unknown XDC1 time origin"):
+            adapter.analyze_notes(
+                notes, executable=self.binary, time_origin="unrecognized",
+            )
+
     def test_chart_convenience_api_supports_rate_and_ln_switch(self):
         notes = fixture_notes()
         data = {
