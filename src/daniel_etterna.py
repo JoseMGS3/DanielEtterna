@@ -2894,6 +2894,9 @@ def open_settings(event=None):
     xdc1_layout_var = tk.StringVar(
         value=APP_CONFIG.get("xdc1_column_layout", "standard"),
     )
+    xdc1_time_origin_var = tk.StringVar(
+        value=APP_CONFIG.get("xdc1_time_origin", "absolute"),
+    )
     engine_panel = tk.Frame(
         general_content, bg="#141414",
         highlightbackground="#353535", highlightthickness=1, bd=0,
@@ -2969,9 +2972,33 @@ def open_settings(event=None):
         )
         xdc1_layout_radios.append(option)
 
+    xdc1_origin_label = tk.Label(
+        engine_body, text=tr("xdc1_time_origin"),
+        bg="#141414", fg=fg, font=small_font, anchor="w",
+    )
+    xdc1_origin_label.grid(
+        row=5, column=0, sticky="ew", padx=(24, 0), pady=(12, 3),
+    )
+    xdc1_origin_radios = []
+    for option_index, origin_name in enumerate(("absolute", "first_note")):
+        option = tk.Radiobutton(
+            engine_body, text=tr("xdc1_origin_" + origin_name),
+            value=origin_name, variable=xdc1_time_origin_var,
+            bg="#141414", fg=fg, selectcolor="#252525",
+            activebackground="#141414", activeforeground=fg,
+            font=small_font, anchor="w", bd=0,
+            highlightthickness=0,
+        )
+        option.grid(
+            row=6 + option_index, column=0, sticky="ew",
+            padx=(24, 0), pady=(2, 0),
+        )
+        xdc1_origin_radios.append(option)
+
     def _update_layout_visibility(*_):
         visible = engine_var.get() == "XDC1"
-        for widget in (xdc1_layout_label, *xdc1_layout_radios):
+        for widget in (xdc1_layout_label, *xdc1_layout_radios,
+                       xdc1_origin_label, *xdc1_origin_radios):
             if visible:
                 widget.grid()
             else:
@@ -2985,7 +3012,7 @@ def open_settings(event=None):
         bg="#141414", fg="#999999", font=small_font,
         justify="left", anchor="w", wraplength=510,
     )
-    engine_hint.grid(row=5, column=0, sticky="ew", pady=(9, 0))
+    engine_hint.grid(row=8, column=0, sticky="ew", pady=(9, 0))
     engine_body.grid_columnconfigure(0, weight=1)
 
     # --------------------------------------------------------
@@ -3231,6 +3258,7 @@ def open_settings(event=None):
             "nomenclature": nomenclature_var.get(),
             "difficulty_engine": engine_var.get(),
             "xdc1_column_layout": xdc1_layout_var.get(),
+            "xdc1_time_origin": xdc1_time_origin_var.get(),
             "include_long_notes": APP_CONFIG.get("include_long_notes", True),
             "main_window_geometry": APP_CONFIG.get("main_window_geometry", ""),
             "window_sizes": dict(APP_CONFIG.get("window_sizes", {})),
@@ -3264,8 +3292,13 @@ def open_settings(event=None):
             APP_CONFIG.get("xdc1_column_layout", "standard")
             != new_config["xdc1_column_layout"]
         )
+        origin_changed = (
+            APP_CONFIG.get("xdc1_time_origin", "absolute")
+            != new_config["xdc1_time_origin"]
+        )
         calculation_changed = engine_changed or (
-            column_layout_changed and new_config["difficulty_engine"] == "XDC1"
+            (column_layout_changed or origin_changed)
+            and new_config["difficulty_engine"] == "XDC1"
         )
         APP_CONFIG = new_config
         if calculation_changed:
@@ -4711,6 +4744,7 @@ def _calculation_snapshot():
             current_description, current_stepstype, current_rate,
             APP_CONFIG.get("difficulty_engine", "Legacy"),
             APP_CONFIG.get("xdc1_column_layout", "standard"),
+            APP_CONFIG.get("xdc1_time_origin", "absolute"),
             APP_CONFIG.get("include_long_notes", True),
             _ln_toggle_revision,
         )
@@ -4761,8 +4795,8 @@ def calculation_loop():
 
         (
             mp, difficulty, meter, description, stepstype, rate,
-            difficulty_engine, xdc1_column_layout, include_long_notes,
-            _ln_revision,
+            difficulty_engine, xdc1_column_layout, xdc1_time_origin,
+            include_long_notes, _ln_revision,
         ) = state
 
 
@@ -4980,6 +5014,7 @@ def calculation_loop():
                     data, selected if extension in (".sm", ".ssc") else None,
                     rate=rate, include_long_notes=include_long_notes,
                     column_layout=xdc1_column_layout,
+                    time_origin=xdc1_time_origin,
                 )
                 SR = xdc1_result["rating"]
                 times = xdc1_result["times"]
