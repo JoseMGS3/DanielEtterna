@@ -140,19 +140,19 @@ class NormalizedChartTests(unittest.TestCase):
         # Minimal independent reconstruction of the user's converted
         # BPM-160 map: osu! stores integer milliseconds by truncation.
         sm = self.sm(
-            "0000\\n0000\\n0000\\n0000\\n0000\\n0200\\n0000\\n0000,"
-            "\\n1300\\n0100\\n0010\\n0000\\n0000\\n0001\\n0000\\n0000",
-            timing="#BPMS:0=160;\\n#OFFSET:-0.400;\\n",
+            "0000\n0000\n0000\n0000\n0000\n0200\n0000\n0000,"
+            "\n1300\n0100\n0010\n0000\n0000\n0001\n0000\n0000",
+            timing="#BPMS:0=160;\n#OFFSET:-0.400;\n",
         )
         osu = self.write(
             "equivalent.osu",
-            "osu file format v14\\n[Difficulty]\\nCircleSize:4\\n"
-            "[HitObjects]\\n"
-            "192,192,1337,128,0,1900:0:0:0:0:\\n"
-            "64,192,1900,1,0,0:0:0:0:\\n"
-            "192,192,2087,1,0,0:0:0:0:\\n"
-            "320,192,2275,1,0,0:0:0:0:\\n"
-            "448,192,2837,1,0,0:0:0:0:\\n",
+            "osu file format v14\n[Difficulty]\nCircleSize:4\n"
+            "[HitObjects]\n"
+            "192,192,1337,128,0,1900:0:0:0:0:\n"
+            "64,192,1900,1,0,0:0:0:0:\n"
+            "192,192,2087,1,0,0:0:0:0:\n"
+            "320,192,2275,1,0,0:0:0:0:\n"
+            "448,192,2837,1,0,0:0:0:0:\n",
         )
         sm_chart = sm["charts"][0]
         expected = [
@@ -174,8 +174,8 @@ class NormalizedChartTests(unittest.TestCase):
         # Floating-point accumulation can produce 16149.999999999998.
         prefix = ",".join(["0000"] * 10)
         sm = self.sm(
-            prefix + ",0000\\n0000\\n1100\\n0000",
-            timing="#BPMS:0=160;\\n#OFFSET:-0.400;\\n",
+            prefix + ",0000\n0000\n1100\n0000",
+            timing="#BPMS:0=160;\n#OFFSET:-0.400;\n",
         )
         self.assertEqual(
             loader.normalize_chart_notes(sm, sm["charts"][0]),
@@ -185,12 +185,12 @@ class NormalizedChartTests(unittest.TestCase):
     def test_ssc_matches_osu_fractional_milliseconds_with_chart_timing(self):
         ssc = self.write(
             "equivalent.ssc",
-            "#BPMS:0=120;\\n#OFFSET:0;\\n"
-            "#NOTEDATA:;\\n#STEPSTYPE:dance-single;\\n"
-            "#DIFFICULTY:Challenge;\\n#METER:14;\\n"
-            "#BPMS:0=160;\\n#OFFSET:-0.400;\\n"
-            "#NOTES:0000\\n0000\\n0000\\n0000\\n0000\\n0200\\n0000\\n0000,"
-            "1300\\n0100\\n0010\\n0000\\n0000\\n0001\\n0000\\n0000;\\n",
+            "#BPMS:0=120;\n#OFFSET:0;\n"
+            "#NOTEDATA:;\n#STEPSTYPE:dance-single;\n"
+            "#DIFFICULTY:Challenge;\n#METER:14;\n"
+            "#BPMS:0=160;\n#OFFSET:-0.400;\n"
+            "#NOTES:0000\n0000\n0000\n0000\n0000\n0200\n0000\n0000,"
+            "1300\n0100\n0010\n0000\n0000\n0001\n0000\n0000;\n",
         )
         self.assertEqual(
             loader.normalize_chart_notes(ssc, ssc["charts"][0]),
