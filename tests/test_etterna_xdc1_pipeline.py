@@ -387,6 +387,47 @@ class EtternaPipelineTests(unittest.TestCase):
         self.assertEqual(len(result["times"]), len(result["strain"]))
         self.assertTrue(all(math.isfinite(v) for v in result["strain"]))
 
+    def test_native_xdc1_skips_orphan_tail_without_changing_rating(self):
+        import warnings
+
+        base_measures = [
+            "0000\n1000\n0000\n0000",
+            "0200\n0100\n0300\n0001",
+        ] + ["1000\n0100\n0010\n0001"] * 10
+        orphan_measures = list(base_measures)
+        orphan_measures[0] = "0030\n1000\n0000\n0000"
+
+        def make_chart(name, measures):
+            return self.write(
+                name,
+                "#BPMS:0=150;\n"
+                "#NOTES:dance-single::Challenge:14:0,0,0,0,0:\n"
+                + ",\n".join(measures) + ";\n",
+            )
+
+        malformed = make_chart("orphan_tail.sm", orphan_measures)
+        reference = make_chart("sanitized.sm", base_measures)
+        for origin in ("absolute", "first_note"):
+            with self.subTest(origin=origin):
+                with warnings.catch_warnings(record=True) as observed:
+                    warnings.simplefilter("always")
+                    actual = pipeline.analyze_etterna_chart(
+                        malformed, malformed["charts"][0],
+                        time_origin=origin,
+                    )
+                baseline = pipeline.analyze_etterna_chart(
+                    reference, reference["charts"][0],
+                    time_origin=origin,
+                )
+                self.assertEqual(len(observed), 1)
+                self.assertIn("ignored 1 unmatched", str(observed[0].message))
+                self.assertEqual(actual["rating"], baseline["rating"])
+                self.assertEqual(actual["rating_rice"], baseline["rating_rice"])
+                self.assertEqual(actual["details"]["rating_points"],
+                                 baseline["details"]["rating_points"])
+                self.assertTrue((actual["times"] == baseline["times"]).all())
+                self.assertTrue((actual["strain"] == baseline["strain"]).all())
+
     def test_selected_chart_must_be_supplied_and_warps_are_rejected(self):
         data = self.write(
             "warped.sm",
