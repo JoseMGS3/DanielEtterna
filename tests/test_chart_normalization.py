@@ -268,6 +268,64 @@ class NormalizedChartTests(unittest.TestCase):
             [(0, 0, -1)],
         )
 
+    def test_sm_ignores_orphan_tail_without_losing_valid_notes_or_lns(self):
+        import warnings
+
+        data = self.sm(
+            "0030\n1000\n0000\n0000,\n"
+            "0020\n0100\n0030\n0001,\n"
+            "0030\n0000\n0000\n0000",
+        )
+        chart = data["charts"][0]
+        # The strict low-level decoder still rejects malformed data.
+        with self.assertRaisesRegex(ValueError, "Orphan hold tail"):
+            loader._stepmania_hold_events(chart["note_data"])
+
+        with warnings.catch_warnings(record=True) as observed:
+            warnings.simplefilter("always")
+            actual = loader.normalize_chart_notes(data, chart)
+        self.assertEqual(actual, [
+            (0, 500, -1),
+            (2, 2000, 3000),
+            (1, 2500, -1),
+            (3, 3500, -1),
+        ])
+        self.assertEqual(len(observed), 1)
+        self.assertIn("ignored 2 unmatched", str(observed[0].message))
+        self.assertIn("column 2", str(observed[0].message))
+        self.assertEqual(
+            loader.rate_normalized_notes(actual, include_long_notes=False),
+            [(0, 500, -1), (2, 2000, -1), (1, 2500, -1),
+             (3, 3500, -1)],
+        )
+        # Legacy has always ignored LN tails, so it remains unchanged.
+        old, ignored = loader.convert_stepmania_chart(data, chart)
+        self.assertEqual(
+            [(col, int(t)) for col, t in old],
+            [(0, 500), (2, 2000), (1, 2500), (3, 3500)],
+        )
+        self.assertEqual(ignored, {})
+
+    def test_ssc_ignores_only_orphan_tail_and_keeps_per_chart_timing(self):
+        import warnings
+
+        data = self.write(
+            "orphan.ssc",
+            "#BPMS:0=120;\n"
+            "#NOTEDATA:;\n#STEPSTYPE:dance-single;\n"
+            "#DIFFICULTY:Hard;\n#METER:11;\n"
+            "#BPMS:0=240;\n#NOTES:\n"
+            "0030\n1000\n0020\n0030;\n",
+        )
+        with warnings.catch_warnings(record=True) as observed:
+            warnings.simplefilter("always")
+            actual = loader.normalize_chart_notes(data, data["charts"][0])
+        self.assertEqual(actual, [
+            (0, 250, -1), (2, 500, 750),
+        ])
+        self.assertEqual(len(observed), 1)
+        self.assertIn("ignored 1 unmatched", str(observed[0].message))
+
     def test_malformed_holds_are_reported(self):
         cases = {
             "orphan tail": "3000\n0000\n0000\n0000",
