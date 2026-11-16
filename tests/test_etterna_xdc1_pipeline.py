@@ -392,7 +392,7 @@ class EtternaPipelineTests(unittest.TestCase):
 
         base_measures = [
             "0000\n1000\n0000\n0000",
-            "0200\n0100\n0300\n0001",
+            "0020\n0100\n0030\n0001",
         ] + ["1000\n0100\n0010\n0001"] * 10
         orphan_measures = list(base_measures)
         orphan_measures[0] = "0030\n1000\n0000\n0000"
