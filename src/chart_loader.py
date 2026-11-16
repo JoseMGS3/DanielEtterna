@@ -923,13 +923,15 @@ def load_chart_file(path):
 # 2.0 CHART NORMALIZATION — NOT WIRED INTO THE LEGACY CALCULATOR
 # ============================================================
 
-def _stepmania_hold_events(note_data):
+def _stepmania_hold_events(note_data, *, orphan_tails=None):
     """Parse playable 4K rows as (column, head_beat, tail_beat).
 
     A tap uses tail=-1. Holds (2) and rolls (4) end at 3, potentially
     in a later measure. Mines, lifts and fake notes are not playable
     presses for XDC1, and are deliberately excluded. Reject malformed
-    hold pairs instead of silently producing incorrect ratings.
+    hold pairs by default. If the caller explicitly supplies an
+    orphan_tails list, unmatched '3' endings are skipped: without a head,
+    the tail is not a playable note. Other malformed pairings still raise.
     """
     active = {}  # column -> start beat
     notes = []
@@ -952,9 +954,12 @@ def _stepmania_hold_events(note_data):
                 active[column] = beat
             elif symbol == "3":
                 if column not in active:
-                    raise ValueError(
-                        f"Orphan hold tail in column {column}"
-                    )
+                    if orphan_tails is None:
+                        raise ValueError(
+                            f"Orphan hold tail in column {column}"
+                        )
+                    orphan_tails.append((column, beat))
+                    continue
                 head_beat = active.pop(column)
                 notes.append((column, head_beat, beat))
             elif symbol not in ("0", "M", "L", "F"):
@@ -990,7 +995,22 @@ def _normalize_stepmania_chart(data, chart):
             "normalization would produce incorrect note timing"
         )
 
-    events = _stepmania_hold_events(chart["note_data"])
+    # Some simfiles contain isolated LN end symbols without their head.
+    # An orphan tail is not a playable note; warn and keep all valid notes.
+    # Never fabricate a missing hold start or modify genuine LN durations.
+    orphan_tails = []
+    events = _stepmania_hold_events(
+        chart["note_data"], orphan_tails=orphan_tails,
+    )
+    if orphan_tails:
+        import warnings
+        first_col, first_beat = orphan_tails[0]
+        warnings.warn(
+            f"XDC1: ignored {len(orphan_tails)} unmatched StepMania hold "
+            f"tail(s); first in column {first_col} at beat {first_beat:g}. "
+            "These ends have no playable note head; other notes are unchanged.",
+            UserWarning, stacklevel=2,
+        )
 
     def beat_ms(beat):
         # Match integer osu!mania hit-object timestamps for equivalent
