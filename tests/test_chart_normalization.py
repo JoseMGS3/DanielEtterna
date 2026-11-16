@@ -328,7 +328,8 @@ class NormalizedChartTests(unittest.TestCase):
 
     def test_malformed_holds_are_reported(self):
         cases = {
-            "orphan tail": "3000\n0000\n0000\n0000",
+            # Orphan tails are now harmless, warned-about non-note events.
+            # Other structural problems remain strict validation errors.
             "unclosed hold": "2000\n0000\n0000\n0000",
             "overlapping holds": "2000\n2000\n3000\n0000",
             "tap on hold": "2000\n1000\n3000\n0000",
