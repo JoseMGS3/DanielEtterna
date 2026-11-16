@@ -45,13 +45,11 @@ def resolve_xdc1_binary(executable=None):
     )
 
 
-def _prepare_input(notes, *, time_origin="absolute"):
-    """Validate XDC1 input and set its time origin.
+def _prepare_input(notes):
+    """Validate and shift negative heads forward for the C++ engine.
 
-    The default preserves Daniel's zero-anchored grid, shifting only
-    negative heads. In first_note mode, the earliest note becomes 0 ms
-    so arbitrary song lead-in/sync offsets cannot change the 25-ms grid
-    phase. Return (stdin text, shift_ms); restore graph times afterward.
+    Return (stdin text, offset_ms). The graph time axis is unshifted
+    after XDC1 returns. No note is removed or truncated.
     """
     normalized = []
     for entry in notes:
@@ -67,11 +65,8 @@ def _prepare_input(notes, *, time_origin="absolute"):
         normalized.append((col, head, tail))
     if len(normalized) < 2:
         raise ValueError("At least two notes are required for XDC1")
-    if time_origin not in ("absolute", "first_note"):
-        raise ValueError("Unknown XDC1 time origin: " + str(time_origin))
     normalized.sort(key=lambda n: (n[1], n[0]))
-    offset = (-normalized[0][1] if time_origin == "first_note"
-              else max(0, -normalized[0][1]))
+    offset = max(0, -normalized[0][1])
     rows = [
         f"{col} {head + offset} {tail + offset if tail != -1 else -1}"
         for col, head, tail in normalized
@@ -88,8 +83,7 @@ def _read_nonnegative_number(value, field):
     return number
 
 
-def analyze_notes(notes, *, executable=None, timeout=45,
-                  time_origin="absolute"):
+def analyze_notes(notes, *, executable=None, timeout=45):
     """Calculate Dan, seven skillsets, and strain directly from XDC1.
 
     Input timestamps are already playback-rate adjusted. For SM/SSC,
@@ -100,7 +94,7 @@ def analyze_notes(notes, *, executable=None, timeout=45,
     engine outputs. XDC1's graph includes no stamina strain, matching
     upstream Daniel 2.x's graph presentation.
     """
-    payload, offset = _prepare_input(notes, time_origin=time_origin)
+    payload, offset = _prepare_input(notes)
     binary = resolve_xdc1_binary(executable)
     command = [str(binary), "--graph"]
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
@@ -185,7 +179,7 @@ def analyze_notes(notes, *, executable=None, timeout=45,
 
 
 def analyze_chart(data, chart=None, *, rate=1.0, include_long_notes=True,
-                  executable=None, timeout=45, time_origin="absolute"):
+                  executable=None, timeout=45):
     """Convenience entry point for the new 2.0 chart-loader API.
 
     Does not change the old application calculation loop. Negative song
@@ -197,5 +191,4 @@ def analyze_chart(data, chart=None, *, rate=1.0, include_long_notes=True,
     rated_notes = chart_loader.rate_normalized_notes(
         notes, rate=rate, include_long_notes=include_long_notes
     )
-    return analyze_notes(rated_notes, executable=executable, timeout=timeout,
-                         time_origin=time_origin)
+    return analyze_notes(rated_notes, executable=executable, timeout=timeout)
